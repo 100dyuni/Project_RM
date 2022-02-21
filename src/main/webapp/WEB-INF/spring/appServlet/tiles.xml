@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE tiles-definitions PUBLIC
+       "-//Apache Software Foundation//DTD Tiles Configuration 3.0//EN"
+       "http://tiles.apache.org/dtds/tiles-config_3_0.dtd">
+       
+<tiles-definitions>
+	<definition name ="layouts-tiles" template="/WEB-INF/views/tiles/layouts.jsp">
+		<put-attribute name="content" value =""/>
+		<put-attribute name="modal" value =""/>
+	</definition>
+	
+	<definition name ="usrlayouts-tiles" template="/WEB-INF/views/tiles/usrLayouts.jsp">
+		<put-attribute name="content" value =""/>
+		<put-attribute name="modal" value =""/>
+	</definition>
+	
+	<!-- Admin -->
+	<definition name="main/main001.tiles" extends="layouts-tiles">
+		<put-attribute name="content" value="/WEB-INF/views/main/main001.jsp"></put-attribute>
+		<put-attribute name="modal" value="/WEB-INF/views/com/modal.jsp"></put-attribute><!-- /WEB-INF/views/main/main001_modal.jsp -->
+	</definition>	
+	
+	<definition name="hwm/*.tiles" extends="layouts-tiles">
+		<put-attribute name="content" value="/WEB-INF/views/hwm/{1}.jsp"></put-attribute>
+		<put-attribute name="modal" value="/WEB-INF/views/com/modal.jsp"></put-attribute>
+	</definition>
+	
+	<definition name="com/*.tiles" extends="layouts-tiles">
+		<put-attribute name="content" value="/WEB-INF/views/com/{1}.jsp"></put-attribute>
+		<put-attribute name="modal" value="/WEB-INF/views/com/modal.jsp"></put-attribute>
+	</definition>
+	
+	<definition name="tot/*.tiles" extends="layouts-tiles">
+		<put-attribute name="content" value="/WEB-INF/views/tot/{1}.jsp"></put-attribute>
+		<put-attribute name="modal" value="/WEB-INF/views/com/modal.jsp"></put-attribute>
+	</definition>	
+
+	<definition name="swm/*.tiles" extends="layouts-tiles">
+		<put-attribute name="content" value="/WEB-INF/views/swm/{1}.jsp"></put-attribute>
+		<put-attribute name="modal" value="/WEB-INF/views/com/modal.jsp"></put-attribute>
+	</definition>
+	
+	<!-- Usr -->
+	<definition name="main/main002.tiles" extends="usrlayouts-tiles">
+		<put-attribute name="content" value="/WEB-INF/views/main/main002.jsp"></put-attribute>
+		<put-attribute name="modal" value="/WEB-INF/views/com/modal_usr.jsp"></put-attribute>
+	</definition>	
+	<definition name="usr/usr001.tiles" extends="usrlayouts-tiles">
+		<put-attribute name="content" value="/WEB-INF/views/hwm/hwm106.jsp"></put-attribute>
+		<put-attribute name="modal" value="/WEB-INF/views/com/modal_usr.jsp"></put-attribute>
+	</definition>
+	<definition name="usr/usr002.tiles" extends="usrlayouts-tiles">
+		<put-attribute name="content" value="/WEB-INF/views/swm/swm104.jsp"></put-attribute>
+		<put-attribute name="modal" value="/WEB-INF/views/com/modal_usr.jsp"></put-attribute>
+	</definition>
+	<!-- usr/usr001.tiles -->
+	
+	
+</tiles-definitions>

@@ -1,0 +1,2166 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!-- MyBatis에서 namespace는 필수적으로 명시해야 함 -->
+<mapper namespace="swm">
+	<resultMap type="tsw10" id ="tsw10"/>
+	<resultMap type="tsw20" id ="tsw20"/>
+	
+	<select id="createSWSeq" resultType="String">
+		SELECT 
+			ISNULL(MAX(sSeq),0)+1 as "sSeq"
+		FROM  
+			TSW10
+	</select>
+	
+	<insert id="swLicenseInsert" parameterType="tsw10">
+		INSERT INTO TSW10(
+			sSeq, purNum, purDate, Note,
+			swType, swLicense, purQty, startDate, endDate,
+			inputUsr,inputDate
+		)VALUES(
+			#{sSeq}, #{purNum}, #{purDate}, #{Note},
+			#{swType}, #{swLicense}, #{purQty}, #{startDate}, #{endDate},
+			#{usrId},getDate()
+		)
+	</insert>
+	
+	<update id="swLicenseUpdate" parameterType="tsw10">
+		UPDATE 
+			TSW10
+		SET
+			purNum = #{purNum}, 
+			purDate = #{purDate}, 
+			Note = #{Note},
+			swType = #{swType}, 
+			swLicense = #{swLicense}, 
+			purQty = #{purQty}, 
+			startDate = #{startDate}, 
+			endDate = #{endDate},
+			updateUsr = #{usrId},
+			updateDate = getDate()
+		WHERE
+			sSeq = #{sSeq}
+	</update>
+	
+	<select id ="searchSwLicense" parameterType="tsw10" resultType="tsw10">
+		SELECT
+			sSeq,
+			purNum,
+			purDate,
+			Note,
+			swType,
+			swLicense,
+			purQty,
+			startDate,
+			endDate
+		FROM 
+			TSW10
+		WHERE 
+			sSeq = #{sSeq}
+	</select>
+	
+	<select id ="getSWLicenseInfo" parameterType="tsw10" resultType="java.util.LinkedHashMap">
+		SELECT 
+			TOT1.sSeq as sSeq,
+			TOT1.swType AS swType,
+			TOT1.swLicense AS swLicense,
+			ISNULL(TOT2.actCout,0) AS actCout,
+			TOT1.totQty AS totQty
+		FROM (
+			SELECT
+				max(T1.sSeq) as sSeq,
+				T1.swType,
+				T1.swLicense,
+				SUM(T1.purQty) as totQty
+			FROM
+				TSW10 T1
+			WHERE 
+				T1.swType = #{swType}
+			AND T1.swLicense = #{swLicense}
+			AND CONVERT(varchar,GETDATE(),102) BETWEEN T1.startDate and T1.endDate
+			GROUP BY T1.swType,T1.swLicense
+		)TOT1
+		LEFT OUTER JOIN (
+			SELECT
+				T3.swType,
+				T3.swLicense,
+				COUNT(*) as actCout
+			FROM
+				TSW20 T2
+				inner join TSW20DT T3
+				on T2.swRegSeq = T3.swRegSeq
+				and T2.swRegDTSeq = T3.swRegDTSeq
+			WHERE 
+				T3.swType = #{swType}
+			AND T3.swLicense = #{swLicense}
+			AND T2.useYN ='Y'
+			GROUP BY 
+				T3.swType,T3.swLicense,T2.useYN
+		)TOT2
+		ON TOT1.swType = TOT2.swType
+		AND TOT1.swLicense = TOT2.swLicense
+			
+	</select>
+	
+	<update id="updateTSW20FlgN" parameterType="tsw20">
+		UPDATE
+			TSW20
+		SET
+			useYN = 'N'
+		WHERE 
+			empCode = #{empCode}
+	</update>
+	
+	<insert id="usrSWHeadInfo" parameterType="tsw20">
+		INSERT INTO TSW20(
+			swRegSeq, swRegDTSeq, LCodeType, LCode1, LCode1Name,
+			LCode2, LCode2Name, Note, useYN, inputUsr, inputDate
+		)VALUES(
+			#{swRegSeq}, 1, #{LCodeType}, #{LCode1}, #{LCode1Name}, 
+			#{LCode2}, #{LCode2Name}, #{Note}, 'Y', #{inputUsr}, GETDATE()
+		)
+	
+	</insert>
+	
+	<update id="updateUsrSwHeadInfo" parameterType="tsw20">
+		UPDATE
+			TSW20
+		SET
+			Note = #{Note},
+			LCodeType = #{LCodeType},
+			updateUsr = #{inputUsr},
+			updateDate = GETDATE()
+		WHERE 
+			swRegSeq = #{swRegSeq}
+			
+	</update>
+	
+	<select id="createSwRegSeq" resultType="String">
+		SELECT 
+			isnull(max(swRegSeq),0)+1 as swRegSeq
+		FROM 
+			TSW20
+	</select>
+	
+	<select id= "getSwInfoOfEmp" parameterType="String" resultType="java.util.LinkedHashMap">
+		SELECT 
+			T1.swRegSeq,
+			T2.sSeq,
+			T2.swType,
+			(select lowCodeName from TRM20DT 
+			 where  highCode = 'swLicence' and lowCode = T2.swType) as swTypeName,
+			T2.swLicense,
+			(select lowCodeName from TRM20DT
+			 where highCode = T2.swType and lowCode = T2.swLicense ) as swLicenseName,
+			T1.useYN,
+			T2.qty,
+			T1.Note
+		FROM 
+			TSW20 T1
+			inner join TSW20DT T2
+			on T1.swRegSeq = T2.swRegSeq
+			and T1.swRegDTSeq = T2.swRegDTSeq
+		WHERE 
+			T1.useYN ='Y'
+			and T1.LCode2 = #{empCode}
+	</select>
+	
+	<select id="createswRegDTSeq" parameterType="tsw20dt" resultType="String">
+		SELECT 
+			ISNULL(MAX(swRegDTSeq),0) + 1 AS swRegDTSeq
+		FROM 
+			TSW20dt
+		WHERE 
+			swRegSeq = #{swRegSeq}
+	</select>
+	
+	<insert id ="usrSWDetailInfoSave" parameterType="tsw20dt">
+		INSERT INTO TSW20DT (
+			swRegSeq,swRegDTSeq,sSeq,swType,swLicense,
+			qty,inputUsr,inputDate)
+		VALUES (
+			#{swRegSeq},#{swRegDTSeq},#{sSeq},#{swType},#{swLicense},
+			#{qty},#{inputUsr},GETDATE())
+	</insert>
+	
+	<update id="usrSWRegDtInfo" parameterType="tsw20dt">
+		UPDATE
+			TSW20
+		SET
+			swRegDTSeq = #{swRegDTSeq}
+		WHERE
+			swRegSeq = #{swRegSeq}
+	</update>
+	
+	<select id="searchSWPurchaseHistory" parameterType="tsw10" resultType="java.util.LinkedHashMap">
+		SELECT 
+			sSeq,
+			purNum,
+			purDate,
+			Note,
+			(select lowCodeName from TRM20DT 
+			 where  highCode = 'swLicence' and lowCode = swType) as swType,
+			(select lowCodeName from TRM20DT
+			 where highCode = swType and lowCode = swLicense ) as swLicense,
+			purQty,
+			startDate,
+			endDate
+			
+		FROM 
+			TSW10
+		WHERE
+			1=1
+			<if test="purNum != null and purNum != '' ">
+				AND purNum LIKE '%'+ #{purNum} +'%' 
+			</if>
+			<if test="purDateFrom != null and purDateFrom != '' ">
+				AND purDate BETWEEN #{purDateFrom} AND #{purDateTo}
+			</if>
+			<if test="swType != null and swType != '' ">
+				AND swType = #{swType}
+			</if>
+			<if test="swLicense != null and swLicense != '' ">
+				AND swLicense = #{swLicense}
+			</if>
+			
+		ORDER BY 
+			sSeq DESC
+	</select>
+	
+	<select id="searchSwActiveAndPurCount" parameterType="tsw10" resultType="java.util.LinkedHashMap">
+		SELECT 
+			CASE WHEN TT1.gp=2 THEN '전체 합계'
+			ELSE TT1.swTypeName
+			END  AS swTypeName
+			,
+			CASE WHEN TT1.gp=0 THEN TT1.swLicenseName
+				 WHEN TT1.gp=1 THEN '소    계'
+				 ELSE ''
+			END  AS swLicenseName
+			,
+			TT1.actQty,
+			TT1.purQty,
+			TT1.gp
+		FROM
+		(
+		SELECT 
+			T1.swType,
+			(select lowCodeName from TRM20DT 
+					 where  highCode = 'swLicence' and lowCode = T1.swType) as swTypeName,
+			T1.swLicense,
+			(select lowCodeName from TRM20DT
+					 where highCode = T1.swType and lowCode = T1.swLicense ) as swLicenseName,
+			SUM(T1.purQty) AS  purQty,
+			SUM(ISNULL(T4.actCout,0)) AS actQty,
+			GROUPING(T1.swType) + GROUPING(T1.swLicense) as gp
+		FROM
+			TSW10 T1
+			LEFT OUTER JOIN (
+				SELECT
+					T3.swType,
+					T3.swLicense,
+					COUNT(*) as actCout
+				FROM
+					TSW20 T2
+					inner join TSW20DT T3
+					on T2.swRegSeq = T3.swRegSeq
+					and T2.swRegDTSeq = T3.swRegDTSeq
+				WHERE 
+					1=1
+				AND T2.useYN ='Y'
+				GROUP BY 
+					T3.swType,T3.swLicense,T2.useYN
+			)T4
+			ON T1.swType = T4.swType
+			AND T1.swLicense = T4.swLicense
+		WHERE
+			1=1
+			and #{purDate} between T1.startDate and T1.endDate
+			
+			<if test="swType != null and swType != '' ">
+				and T1.swType = #{swType}
+			</if>
+			<if test="swLicense != null and swLicense != '' ">
+				AND T1.swLicense = #{swLicense} 
+			</if>
+			
+		group by 
+			T1.swType,T1.swLicense
+		WITH ROLLUP
+		) TT1
+	</select>
+	
+	<select id="searchAgenSwManageRegister" parameterType="java.util.LinkedHashMap" resultType="java.util.LinkedHashMap">
+					
+		SELECT
+			TT2.highOrgCode,
+			TT2.highOrgName,
+			TT2.lowOrgCode,
+			TT2.lowOrgName,
+		
+			SUM(TT2.[2016Pro]) AS 'm2016Pro',	
+			SUM(TT2.[2016Std]) AS 'm2016Std',
+			SUM(TT2.[2013Pro]) AS 'm2013Pro',
+			SUM(TT2.[2013Std]) AS 'm2013Std',
+			SUM(TT2.[2010Std]) AS 'm2010Std',
+			SUM(TT2.[2007Pro]) AS 'm2007Pro',
+			SUM(TT2.[2007Std]) AS 'm2007Std',
+			SUM(TT2.[2003Pro]) AS 'm2003Pro',
+			SUM(TT2.[2003Std]) AS 'm2003Std',
+			SUM(TT2.[2002Std]) AS 'm2002Std',
+			SUM(TT2.[2002Excel]) AS 'm2002Excel',
+			SUM(TT2.[97Pro]) AS 'm97Pro',
+			SUM(TT2.[97Excel]) AS 'm97Excel',
+		
+			SUM(TT2.[h2014Neo]) AS 'h2014Neo',
+			SUM(TT2.[h2014Vp]) AS 'h2014Vp',
+			SUM(TT2.[h2014]) AS 'h2014',
+			SUM(TT2.[h2010]) AS 'h2010',
+			SUM(TT2.[h2007]) AS 'h2007',
+			SUM(TT2.[h2005]) AS 'h2005',
+			SUM(TT2.[h2002]) AS 'h2002',
+			SUM(TT2.[h97]) AS 'h97',
+		
+			SUM(TT2.[A_ill_CC]) AS 'A_ill_CC',
+			SUM(TT2.[A_PS_CC]) AS 'A_PS_CC',
+			SUM(TT2.[DW_CC]) AS 'DW_CC',
+			SUM(TT2.[A_Compl]) AS 'A_Compl',
+			SUM(TT2.[A_CS6]) AS 'A_CS6',
+			SUM(TT2.[A_CS5]) AS 'A_CS5',
+			SUM(TT2.[PS_CS5]) AS 'PS_CS5',
+			SUM(TT2.[CS4Pre]) AS 'CS4Pre',
+			SUM(TT2.[A_CS4]) AS 'A_CS4',
+			SUM(TT2.[ill_CS4]) AS 'ill_CS4',
+			SUM(TT2.[A_CS3]) AS 'A_CS3',
+			SUM(TT2.[A_CS2]) AS 'A_CS2',
+			SUM(TT2.[A_CS]) AS 'A_CS',
+			SUM(TT2.[PS_CS3]) AS 'PS_CS3',
+			SUM(TT2.[PS_CS2]) AS 'PS_CS2',
+			SUM(TT2.[PS_CS]) AS 'PS_CS',
+			SUM(TT2.[ill_10]) AS 'ill_10',
+		
+			SUM(TT2.[3DMax]) AS 'g3DMax',
+			SUM(TT2.[Sketchup7]) AS 'Sketchup7',
+			SUM(TT2.[Vray3]) AS 'Vray3',
+		
+			SUM(TT2.[c2014]) AS 'c2014',
+			SUM(TT2.[c2007]) AS 'c2007',
+			SUM(TT2.[R14]) AS 'R14',
+			
+			SUM(TT2.[VS2008]) AS 'VS2008',
+			SUM(TT2.[VS2013]) AS 'VS2013',
+		
+			'' AS 'fini'
+		FROM(
+			SELECT 
+				TT1.highOrgCode,
+				TT1.highOrgName ,
+				TT1.lowOrgCode,
+				TT1.lowOrgName,
+		
+				case when TT1.swType ='msOffice' then 
+						case when (TT1.swLicense ='2016Pro') then TT1.qty
+											else ''
+						end
+					else ''
+				end AS '2016Pro',
+				case when TT1.swType ='msOffice' then 
+						case when (TT1.swLicense ='2016Std') then TT1.qty
+											else ''
+						end
+					else ''
+				end AS '2016Std',
+				case when TT1.swType ='msOffice' then 
+						case when (TT1.swLicense ='2013Pro') then TT1.qty
+											else ''
+						end
+					else ''
+				end AS '2013Pro',
+				case when TT1.swType ='msOffice' then 
+						case when (TT1.swLicense ='2013Std') then TT1.qty
+											else ''
+						end
+					else ''
+				end AS '2013Std',
+				case when TT1.swType ='msOffice' then 
+						case when (TT1.swLicense ='2010Std') then TT1.qty
+											else ''
+						end
+					else ''
+				end AS '2010Std',
+				case when TT1.swType ='msOffice' then 
+						case when (TT1.swLicense ='2007Pro') then TT1.qty
+											else ''
+						end
+					else ''
+				end AS '2007Pro',
+				case when TT1.swType ='msOffice' then 
+						case when (TT1.swLicense ='2007Std') then TT1.qty
+											else ''
+						end
+					else ''
+				end AS '2007Std',
+				case when TT1.swType ='msOffice' then 
+						case when (TT1.swLicense ='2003Pro') then TT1.qty
+											else ''
+						end
+					else ''
+				end AS '2003Pro',
+				case when TT1.swType ='msOffice' then 
+						case when (TT1.swLicense ='2003Std') then TT1.qty
+											else ''
+						end
+					else ''
+				end AS '2003Std',
+				case when TT1.swType ='msOffice' then 
+						case when (TT1.swLicense ='2002Std') then TT1.qty
+											else ''
+						end
+					else ''
+				end AS '2002Std',
+				case when TT1.swType ='msOffice' then 
+						case when (TT1.swLicense ='2002Excel') then TT1.qty
+											else ''
+						end
+					else ''
+				end AS '2002Excel',
+				case when TT1.swType ='msOffice' then 
+						case when (TT1.swLicense ='97Pro') then TT1.qty
+											else ''
+						end
+					else ''
+				end AS '97Pro',
+				case when TT1.swType ='msOffice' then 
+						case when (TT1.swLicense ='97Excel') then TT1.qty
+											else ''
+						end
+					else ''
+				end AS '97Excel',
+		
+		
+				case when TT1.swType ='hangul' then 
+						case when (TT1.swLicense ='h2014Neo') then TT1.qty
+											else ''
+						end
+					else ''
+				end AS 'h2014Neo',
+				case when TT1.swType ='hangul' then 
+						case when (TT1.swLicense ='h2014Vp') then TT1.qty
+											else ''
+						end
+					else ''
+				end AS 'h2014Vp',
+				case when TT1.swType ='hangul' then 
+						case when (TT1.swLicense ='h2014') then TT1.qty
+											else ''
+						end
+					else ''
+				end AS 'h2014',
+				case when TT1.swType ='hangul' then 
+						case when (TT1.swLicense ='h2010') then TT1.qty
+											else ''
+						end
+					else ''
+				end AS 'h2010',
+				case when TT1.swType ='hangul' then 
+						case when (TT1.swLicense ='h2007') then TT1.qty
+											else ''
+						end
+					else ''
+				end AS 'h2007',
+				case when TT1.swType ='hangul' then 
+						case when (TT1.swLicense ='h2005') then TT1.qty
+											else ''
+						end
+					else ''
+				end AS 'h2005',
+				case when TT1.swType ='hangul' then 
+						case when (TT1.swLicense ='h2002') then TT1.qty
+											else ''
+						end
+					else ''
+				end AS 'h2002',
+				case when TT1.swType ='hangul' then 
+						case when (TT1.swLicense ='h97') then TT1.qty
+											else ''
+						end
+					else ''
+				end AS 'h97',
+			
+		
+				case when TT1.swType ='adobe' then 
+						case when (TT1.swLicense ='A_ill_CC') then TT1.qty
+											else ''
+						end
+					else ''
+				end AS 'A_ill_CC',
+				case when TT1.swType ='adobe' then 
+						case when (TT1.swLicense ='A_PS_CC') then TT1.qty
+											else ''
+						end
+					else ''
+				end AS 'A_PS_CC',
+				case when TT1.swType ='adobe' then 
+						case when (TT1.swLicense ='DW_CC') then TT1.qty
+											else ''
+						end
+					else ''
+				end AS 'DW_CC',
+				case when TT1.swType ='adobe' then 
+						case when (TT1.swLicense ='A_Compl') then TT1.qty
+											else ''
+						end
+					else ''
+				end AS 'A_Compl',
+				case when TT1.swType ='adobe' then 
+						case when (TT1.swLicense ='A_CS6') then TT1.qty
+											else ''
+						end
+					else ''
+				end AS 'A_CS6',
+				case when TT1.swType ='adobe' then 
+						case when (TT1.swLicense ='A_CS5') then TT1.qty
+											else ''
+						end
+					else ''
+				end AS 'A_CS5',
+				case when TT1.swType ='adobe' then 
+						case when (TT1.swLicense ='PS_CS5') then TT1.qty
+											else ''
+						end
+					else ''
+				end AS 'PS_CS5',
+				case when TT1.swType ='adobe' then 
+						case when (TT1.swLicense ='CS4Pre') then TT1.qty
+											else ''
+						end
+					else ''
+				end AS 'CS4Pre',
+				case when TT1.swType ='adobe' then 
+						case when (TT1.swLicense ='A_CS4') then TT1.qty
+											else ''
+						end
+					else ''
+				end AS 'A_CS4',
+				case when TT1.swType ='adobe' then 
+						case when (TT1.swLicense ='ill_CS4') then TT1.qty
+											else ''
+						end
+					else ''
+				end AS 'ill_CS4',
+				case when TT1.swType ='adobe' then 
+						case when (TT1.swLicense ='A_CS3') then TT1.qty
+											else ''
+						end
+					else ''
+				end AS 'A_CS3',
+				case when TT1.swType ='adobe' then 
+						case when (TT1.swLicense ='A_CS2') then TT1.qty
+											else ''
+						end
+					else ''
+				end AS 'A_CS2',
+				case when TT1.swType ='adobe' then 
+						case when (TT1.swLicense ='A_CS') then TT1.qty
+											else ''
+						end
+					else ''
+				end AS 'A_CS',
+				case when TT1.swType ='adobe' then 
+						case when (TT1.swLicense ='PS_CS3') then TT1.qty
+											else ''
+						end
+					else ''
+				end AS 'PS_CS3',
+				case when TT1.swType ='adobe' then 
+						case when (TT1.swLicense ='PS_CS2') then TT1.qty
+											else ''
+						end
+					else ''
+				end AS 'PS_CS2',
+				case when TT1.swType ='adobe' then 
+						case when (TT1.swLicense ='PS_CS') then TT1.qty
+											else ''
+						end
+					else ''
+				end AS 'PS_CS',
+				case when TT1.swType ='adobe' then 
+						case when (TT1.swLicense ='ill_10') then TT1.qty
+											else ''
+						end
+					else ''
+				end AS 'ill_10',
+			
+		
+				case when TT1.swType ='graphic' then 
+						case when (TT1.swLicense ='3DMax') then TT1.qty
+											else ''
+						end
+					else ''
+				end AS '3DMax',
+				case when TT1.swType ='graphic' then 
+						case when (TT1.swLicense ='Sketchup7') then TT1.qty
+											else ''
+						end
+					else ''
+				end AS 'Sketchup7',
+				case when TT1.swType ='graphic' then 
+						case when (TT1.swLicense ='Vray3') then TT1.qty
+											else ''
+						end
+					else ''
+				end AS 'Vray3',
+			
+				case when TT1.swType ='cad' then 
+						case when (TT1.swLicense ='c2014') then TT1.qty
+											else ''
+						end
+					else ''
+				end AS 'c2014',
+				case when TT1.swType ='cad' then 
+						case when (TT1.swLicense ='c2007') then TT1.qty
+											else ''
+						end
+					else ''
+				end AS 'c2007',
+				case when TT1.swType ='cad' then 
+						case when (TT1.swLicense ='R14') then TT1.qty
+											else ''
+						end
+					else ''
+				end AS 'R14',
+			
+				case when TT1.swType ='swEtc' then 
+						case when (TT1.swLicense ='VS2008') then TT1.qty
+											else ''
+						end
+					else ''
+				end AS 'VS2008',
+				case when TT1.swType ='swEtc' then 
+						case when (TT1.swLicense ='VS2013') then TT1.qty
+											else ''
+						end
+					else ''
+				end AS 'VS2013',
+				'' AS 'fini'
+			FROM(
+				SELECT 
+					T3.LCode1 AS highOrgCode,
+					T3.LCode1Name AS highOrgName,
+					T3.LCode2 AS lowOrgCode,
+					T3.LCode2Name AS lowOrgName,
+					T4.swType,
+					T4.swLicense,
+					T4.qty
+				FROM TSW20 T3
+					inner join TSW20DT T4
+					on T3.swRegSeq = T4.swRegSeq
+					and T3.swRegDTSeq = T4.swRegDTSeq
+				WHERE T3.useYN ='Y'
+					and T3.LCodeType = 'AGEN'
+			)TT1
+		)TT2
+		GROUP BY  
+			TT2.highOrgCode,
+			TT2.highOrgName ,
+			TT2.lowOrgCode,
+			TT2.lowOrgName
+	</select>
+	
+	<select id="searchSwManageRegister" parameterType="java.util.LinkedHashMap" resultType="java.util.LinkedHashMap">
+				
+		<!-- SELECT
+			TT2.highOrgCode,
+			TT2.highOrgName,
+			TT2.lowOrgCode,
+			TT2.lowOrgName,
+		
+			SUM(TT2.[2016Pro]) AS 'm2016Pro',	
+			SUM(TT2.[2016Std]) AS 'm2016Std',
+			SUM(TT2.[2013Pro]) AS 'm2013Pro',
+			SUM(TT2.[2013Std]) AS 'm2013Std',
+			SUM(TT2.[2010Std]) AS 'm2010Std',
+			SUM(TT2.[2007Pro]) AS 'm2007Pro',
+			SUM(TT2.[2007Std]) AS 'm2007Std',
+			SUM(TT2.[2003Pro]) AS 'm2003Pro',
+			SUM(TT2.[2003Std]) AS 'm2003Std',
+			SUM(TT2.[2002Std]) AS 'm2002Std',
+			SUM(TT2.[2002Excel]) AS 'm2002Excel',
+			SUM(TT2.[97Pro]) AS 'm97Pro',
+			SUM(TT2.[97Excel]) AS 'm97Excel',
+		
+			SUM(TT2.[h2014Neo]) AS 'h2014Neo',
+			SUM(TT2.[h2014Vp]) AS 'h2014Vp',
+			SUM(TT2.[h2014]) AS 'h2014',
+			SUM(TT2.[h2010]) AS 'h2010',
+			SUM(TT2.[h2007]) AS 'h2007',
+			SUM(TT2.[h2005]) AS 'h2005',
+			SUM(TT2.[h2002]) AS 'h2002',
+			SUM(TT2.[h97]) AS 'h97',
+		
+			SUM(TT2.[A_ill_CC]) AS 'A_ill_CC',
+			SUM(TT2.[A_PS_CC]) AS 'A_PS_CC',
+			SUM(TT2.[DW_CC]) AS 'DW_CC',
+			SUM(TT2.[A_Compl]) AS 'A_Compl',
+			SUM(TT2.[A_CS6]) AS 'A_CS6',
+			SUM(TT2.[A_CS5]) AS 'A_CS5',
+			SUM(TT2.[PS_CS5]) AS 'PS_CS5',
+			SUM(TT2.[CS4Pre]) AS 'CS4Pre',
+			SUM(TT2.[A_CS4]) AS 'A_CS4',
+			SUM(TT2.[ill_CS4]) AS 'ill_CS4',
+			SUM(TT2.[A_CS3]) AS 'A_CS3',
+			SUM(TT2.[A_CS2]) AS 'A_CS2',
+			SUM(TT2.[A_CS]) AS 'A_CS',
+			SUM(TT2.[PS_CS3]) AS 'PS_CS3',
+			SUM(TT2.[PS_CS2]) AS 'PS_CS2',
+			SUM(TT2.[PS_CS]) AS 'PS_CS',
+			SUM(TT2.[ill_10]) AS 'ill_10',
+		
+			SUM(TT2.[3DMax]) AS 'g3DMax',
+			SUM(TT2.[Sketchup7]) AS 'Sketchup7',
+			SUM(TT2.[Vray3]) AS 'Vray3',
+		
+			SUM(TT2.[c2014]) AS 'c2014',
+			SUM(TT2.[c2007]) AS 'c2007',
+			SUM(TT2.[R14]) AS 'R14',
+			
+			SUM(TT2.[VS2008]) AS 'VS2008',
+			SUM(TT2.[VS2013]) AS 'VS2013',
+		
+			'' AS 'fini'
+		FROM(
+			SELECT 
+				TT1.highOrgCode,
+				TT1.highOrgName ,
+				TT1.lowOrgCode,
+				TT1.lowOrgName,
+		
+				case when TT1.swType ='msOffice' then 
+						case when (TT1.swLicense ='2016Pro') then TT1.qty
+											else ''
+						end
+					else ''
+				end AS '2016Pro',
+				case when TT1.swType ='msOffice' then 
+						case when (TT1.swLicense ='2016Std') then TT1.qty
+											else ''
+						end
+					else ''
+				end AS '2016Std',
+				case when TT1.swType ='msOffice' then 
+						case when (TT1.swLicense ='2013Pro') then TT1.qty
+											else ''
+						end
+					else ''
+				end AS '2013Pro',
+				case when TT1.swType ='msOffice' then 
+						case when (TT1.swLicense ='2013Std') then TT1.qty
+											else ''
+						end
+					else ''
+				end AS '2013Std',
+				case when TT1.swType ='msOffice' then 
+						case when (TT1.swLicense ='2010Std') then TT1.qty
+											else ''
+						end
+					else ''
+				end AS '2010Std',
+				case when TT1.swType ='msOffice' then 
+						case when (TT1.swLicense ='2007Pro') then TT1.qty
+											else ''
+						end
+					else ''
+				end AS '2007Pro',
+				case when TT1.swType ='msOffice' then 
+						case when (TT1.swLicense ='2007Std') then TT1.qty
+											else ''
+						end
+					else ''
+				end AS '2007Std',
+				case when TT1.swType ='msOffice' then 
+						case when (TT1.swLicense ='2003Pro') then TT1.qty
+											else ''
+						end
+					else ''
+				end AS '2003Pro',
+				case when TT1.swType ='msOffice' then 
+						case when (TT1.swLicense ='2003Std') then TT1.qty
+											else ''
+						end
+					else ''
+				end AS '2003Std',
+				case when TT1.swType ='msOffice' then 
+						case when (TT1.swLicense ='2002Std') then TT1.qty
+											else ''
+						end
+					else ''
+				end AS '2002Std',
+				case when TT1.swType ='msOffice' then 
+						case when (TT1.swLicense ='2002Excel') then TT1.qty
+											else ''
+						end
+					else ''
+				end AS '2002Excel',
+				case when TT1.swType ='msOffice' then 
+						case when (TT1.swLicense ='97Pro') then TT1.qty
+											else ''
+						end
+					else ''
+				end AS '97Pro',
+				case when TT1.swType ='msOffice' then 
+						case when (TT1.swLicense ='97Excel') then TT1.qty
+											else ''
+						end
+					else ''
+				end AS '97Excel',
+		
+		
+				case when TT1.swType ='hangul' then 
+						case when (TT1.swLicense ='h2014Neo') then TT1.qty
+											else ''
+						end
+					else ''
+				end AS 'h2014Neo',
+				case when TT1.swType ='hangul' then 
+						case when (TT1.swLicense ='h2014Vp') then TT1.qty
+											else ''
+						end
+					else ''
+				end AS 'h2014Vp',
+				case when TT1.swType ='hangul' then 
+						case when (TT1.swLicense ='h2014') then TT1.qty
+											else ''
+						end
+					else ''
+				end AS 'h2014',
+				case when TT1.swType ='hangul' then 
+						case when (TT1.swLicense ='h2010') then TT1.qty
+											else ''
+						end
+					else ''
+				end AS 'h2010',
+				case when TT1.swType ='hangul' then 
+						case when (TT1.swLicense ='h2007') then TT1.qty
+											else ''
+						end
+					else ''
+				end AS 'h2007',
+				case when TT1.swType ='hangul' then 
+						case when (TT1.swLicense ='h2005') then TT1.qty
+											else ''
+						end
+					else ''
+				end AS 'h2005',
+				case when TT1.swType ='hangul' then 
+						case when (TT1.swLicense ='h2002') then TT1.qty
+											else ''
+						end
+					else ''
+				end AS 'h2002',
+				case when TT1.swType ='hangul' then 
+						case when (TT1.swLicense ='h97') then TT1.qty
+											else ''
+						end
+					else ''
+				end AS 'h97',
+			
+		
+				case when TT1.swType ='adobe' then 
+						case when (TT1.swLicense ='A_ill_CC') then TT1.qty
+											else ''
+						end
+					else ''
+				end AS 'A_ill_CC',
+				case when TT1.swType ='adobe' then 
+						case when (TT1.swLicense ='A_PS_CC') then TT1.qty
+											else ''
+						end
+					else ''
+				end AS 'A_PS_CC',
+				case when TT1.swType ='adobe' then 
+						case when (TT1.swLicense ='DW_CC') then TT1.qty
+											else ''
+						end
+					else ''
+				end AS 'DW_CC',
+				case when TT1.swType ='adobe' then 
+						case when (TT1.swLicense ='A_Compl') then TT1.qty
+											else ''
+						end
+					else ''
+				end AS 'A_Compl',
+				case when TT1.swType ='adobe' then 
+						case when (TT1.swLicense ='A_CS6') then TT1.qty
+											else ''
+						end
+					else ''
+				end AS 'A_CS6',
+				case when TT1.swType ='adobe' then 
+						case when (TT1.swLicense ='A_CS5') then TT1.qty
+											else ''
+						end
+					else ''
+				end AS 'A_CS5',
+				case when TT1.swType ='adobe' then 
+						case when (TT1.swLicense ='PS_CS5') then TT1.qty
+											else ''
+						end
+					else ''
+				end AS 'PS_CS5',
+				case when TT1.swType ='adobe' then 
+						case when (TT1.swLicense ='CS4Pre') then TT1.qty
+											else ''
+						end
+					else ''
+				end AS 'CS4Pre',
+				case when TT1.swType ='adobe' then 
+						case when (TT1.swLicense ='A_CS4') then TT1.qty
+											else ''
+						end
+					else ''
+				end AS 'A_CS4',
+				case when TT1.swType ='adobe' then 
+						case when (TT1.swLicense ='ill_CS4') then TT1.qty
+											else ''
+						end
+					else ''
+				end AS 'ill_CS4',
+				case when TT1.swType ='adobe' then 
+						case when (TT1.swLicense ='A_CS3') then TT1.qty
+											else ''
+						end
+					else ''
+				end AS 'A_CS3',
+				case when TT1.swType ='adobe' then 
+						case when (TT1.swLicense ='A_CS2') then TT1.qty
+											else ''
+						end
+					else ''
+				end AS 'A_CS2',
+				case when TT1.swType ='adobe' then 
+						case when (TT1.swLicense ='A_CS') then TT1.qty
+											else ''
+						end
+					else ''
+				end AS 'A_CS',
+				case when TT1.swType ='adobe' then 
+						case when (TT1.swLicense ='PS_CS3') then TT1.qty
+											else ''
+						end
+					else ''
+				end AS 'PS_CS3',
+				case when TT1.swType ='adobe' then 
+						case when (TT1.swLicense ='PS_CS2') then TT1.qty
+											else ''
+						end
+					else ''
+				end AS 'PS_CS2',
+				case when TT1.swType ='adobe' then 
+						case when (TT1.swLicense ='PS_CS') then TT1.qty
+											else ''
+						end
+					else ''
+				end AS 'PS_CS',
+				case when TT1.swType ='adobe' then 
+						case when (TT1.swLicense ='ill_10') then TT1.qty
+											else ''
+						end
+					else ''
+				end AS 'ill_10',
+			
+		
+				case when TT1.swType ='graphic' then 
+						case when (TT1.swLicense ='3DMax') then TT1.qty
+											else ''
+						end
+					else ''
+				end AS '3DMax',
+				case when TT1.swType ='graphic' then 
+						case when (TT1.swLicense ='Sketchup7') then TT1.qty
+											else ''
+						end
+					else ''
+				end AS 'Sketchup7',
+				case when TT1.swType ='graphic' then 
+						case when (TT1.swLicense ='Vray3') then TT1.qty
+											else ''
+						end
+					else ''
+				end AS 'Vray3',
+			
+				case when TT1.swType ='cad' then 
+						case when (TT1.swLicense ='c2014') then TT1.qty
+											else ''
+						end
+					else ''
+				end AS 'c2014',
+				case when TT1.swType ='cad' then 
+						case when (TT1.swLicense ='c2007') then TT1.qty
+											else ''
+						end
+					else ''
+				end AS 'c2007',
+				case when TT1.swType ='cad' then 
+						case when (TT1.swLicense ='R14') then TT1.qty
+											else ''
+						end
+					else ''
+				end AS 'R14',
+			
+				case when TT1.swType ='swEtc' then 
+						case when (TT1.swLicense ='VS2008') then TT1.qty
+											else ''
+						end
+					else ''
+				end AS 'VS2008',
+				case when TT1.swType ='swEtc' then 
+						case when (TT1.swLicense ='VS2013') then TT1.qty
+											else ''
+						end
+					else ''
+				end AS 'VS2013',
+				'' AS 'fini'
+			FROM(
+				SELECT 
+					T7.highOrgCode,
+					MAX(T7.highOrgName) AS highOrgName,
+					T6.lowOrgCode,
+					MAX(T6.lowOrgName) AS lowOrgName,
+					T4.swType,
+					T4.swLicense,
+					SUM(T4.qty) AS qty
+				FROM TSW20 T3
+					inner join TSW20DT T4
+					on T3.swRegSeq = T4.swRegSeq
+					and T3.swRegDTSeq = T4.swRegDTSeq
+					left outer join TRM10 T5
+					on T3.LCode2 = T5.empCode
+					inner join TRM60DT T6
+					on T5.depCode2 = T6.lowOrgCode
+					inner join Trm60 T7
+					on T7.orgFlag = T6.orgFlag
+					and T7.highOrgCode = T6.highOrgCode
+				WHERE T3.useYN ='Y'
+					and T3.LCodeType = #{orgFlag}
+					<if test="highOrgCode != null and highOrgCode != '' ">
+						AND T6.highOrgCode = #{highOrgCode} 
+					</if>
+					<if test="lowOrgCode != null and lowOrgCode != '' ">
+						AND T6.lowOrgCode = #{lowOrgCode} 
+					</if>
+				GROUP BY  
+					T7.highOrgCode,T6.lowOrgCode,T4.swType,T4.swLicense
+			)TT1
+		)TT2
+		GROUP BY  
+			TT2.highOrgCode,
+			TT2.highOrgName ,
+			TT2.lowOrgCode,
+			TT2.lowOrgName -->
+			
+		SELECT
+			TT2.highOrgCode,
+			TT2.highOrgName,
+			TT2.lowOrgCode,
+			TT2.lowOrgName,
+		
+			SUM(TT2.[2016Pro]) AS 'm2016Pro',	
+			SUM(TT2.[2016Std]) AS 'm2016Std',
+			SUM(TT2.[2013Pro]) AS 'm2013Pro',
+			SUM(TT2.[2013Std]) AS 'm2013Std',
+			SUM(TT2.[2010Std]) AS 'm2010Std',
+			SUM(TT2.[2007Pro]) AS 'm2007Pro',
+			SUM(TT2.[2007Std]) AS 'm2007Std',
+			SUM(TT2.[2003Pro]) AS 'm2003Pro',
+			SUM(TT2.[2003Std]) AS 'm2003Std',
+			SUM(TT2.[2002Std]) AS 'm2002Std',
+			SUM(TT2.[2002Excel]) AS 'm2002Excel',
+			SUM(TT2.[97Pro]) AS 'm97Pro',
+			SUM(TT2.[97Excel]) AS 'm97Excel',
+		
+			SUM(TT2.[h2014Neo]) AS 'h2014Neo',
+			SUM(TT2.[h2014Vp]) AS 'h2014Vp',
+			SUM(TT2.[h2014]) AS 'h2014',
+			SUM(TT2.[h2010]) AS 'h2010',
+			SUM(TT2.[h2007]) AS 'h2007',
+			SUM(TT2.[h2005]) AS 'h2005',
+			SUM(TT2.[h2002]) AS 'h2002',
+			SUM(TT2.[h97]) AS 'h97',
+		
+			SUM(TT2.[A_ill_CC]) AS 'A_ill_CC',
+			SUM(TT2.[A_PS_CC]) AS 'A_PS_CC',
+			SUM(TT2.[DW_CC]) AS 'DW_CC',
+			SUM(TT2.[A_Compl]) AS 'A_Compl',
+			SUM(TT2.[A_CS6]) AS 'A_CS6',
+			SUM(TT2.[A_CS5]) AS 'A_CS5',
+			SUM(TT2.[PS_CS5]) AS 'PS_CS5',
+			SUM(TT2.[CS4Pre]) AS 'CS4Pre',
+			SUM(TT2.[A_CS4]) AS 'A_CS4',
+			SUM(TT2.[ill_CS4]) AS 'ill_CS4',
+			SUM(TT2.[A_CS3]) AS 'A_CS3',
+			SUM(TT2.[A_CS2]) AS 'A_CS2',
+			SUM(TT2.[A_CS]) AS 'A_CS',
+			SUM(TT2.[PS_CS3]) AS 'PS_CS3',
+			SUM(TT2.[PS_CS2]) AS 'PS_CS2',
+			SUM(TT2.[PS_CS]) AS 'PS_CS',
+			SUM(TT2.[ill_10]) AS 'ill_10',
+		
+			SUM(TT2.[3DMax]) AS 'g3DMax',
+			SUM(TT2.[Sketchup7]) AS 'Sketchup7',
+			SUM(TT2.[Vray3]) AS 'Vray3',
+		
+			SUM(TT2.[c2014]) AS 'c2014',
+			SUM(TT2.[c2007]) AS 'c2007',
+			SUM(TT2.[R14]) AS 'R14',
+			
+			SUM(TT2.[VS2008]) AS 'VS2008',
+			SUM(TT2.[VS2013]) AS 'VS2013',
+		
+			'' AS 'fini'
+		FROM(
+			SELECT 
+				TT1.highOrgCode,
+				TT1.highOrgName ,
+				TT1.lowOrgCode,
+				TT1.lowOrgName,
+		
+				case when TT1.swType ='msOffice' then 
+						case when (TT1.swLicense ='2016Pro') then TT1.qty
+											else ''
+						end
+					else ''
+				end AS '2016Pro',
+				case when TT1.swType ='msOffice' then 
+						case when (TT1.swLicense ='2016Std') then TT1.qty
+											else ''
+						end
+					else ''
+				end AS '2016Std',
+				case when TT1.swType ='msOffice' then 
+						case when (TT1.swLicense ='2013Pro') then TT1.qty
+											else ''
+						end
+					else ''
+				end AS '2013Pro',
+				case when TT1.swType ='msOffice' then 
+						case when (TT1.swLicense ='2013Std') then TT1.qty
+											else ''
+						end
+					else ''
+				end AS '2013Std',
+				case when TT1.swType ='msOffice' then 
+						case when (TT1.swLicense ='2010Std') then TT1.qty
+											else ''
+						end
+					else ''
+				end AS '2010Std',
+				case when TT1.swType ='msOffice' then 
+						case when (TT1.swLicense ='2007Pro') then TT1.qty
+											else ''
+						end
+					else ''
+				end AS '2007Pro',
+				case when TT1.swType ='msOffice' then 
+						case when (TT1.swLicense ='2007Std') then TT1.qty
+											else ''
+						end
+					else ''
+				end AS '2007Std',
+				case when TT1.swType ='msOffice' then 
+						case when (TT1.swLicense ='2003Pro') then TT1.qty
+											else ''
+						end
+					else ''
+				end AS '2003Pro',
+				case when TT1.swType ='msOffice' then 
+						case when (TT1.swLicense ='2003Std') then TT1.qty
+											else ''
+						end
+					else ''
+				end AS '2003Std',
+				case when TT1.swType ='msOffice' then 
+						case when (TT1.swLicense ='2002Std') then TT1.qty
+											else ''
+						end
+					else ''
+				end AS '2002Std',
+				case when TT1.swType ='msOffice' then 
+						case when (TT1.swLicense ='2002Excel') then TT1.qty
+											else ''
+						end
+					else ''
+				end AS '2002Excel',
+				case when TT1.swType ='msOffice' then 
+						case when (TT1.swLicense ='97Pro') then TT1.qty
+											else ''
+						end
+					else ''
+				end AS '97Pro',
+				case when TT1.swType ='msOffice' then 
+						case when (TT1.swLicense ='97Excel') then TT1.qty
+											else ''
+						end
+					else ''
+				end AS '97Excel',
+		
+		
+				case when TT1.swType ='hangul' then 
+						case when (TT1.swLicense ='h2014Neo') then TT1.qty
+											else ''
+						end
+					else ''
+				end AS 'h2014Neo',
+				case when TT1.swType ='hangul' then 
+						case when (TT1.swLicense ='h2014Vp') then TT1.qty
+											else ''
+						end
+					else ''
+				end AS 'h2014Vp',
+				case when TT1.swType ='hangul' then 
+						case when (TT1.swLicense ='h2014') then TT1.qty
+											else ''
+						end
+					else ''
+				end AS 'h2014',
+				case when TT1.swType ='hangul' then 
+						case when (TT1.swLicense ='h2010') then TT1.qty
+											else ''
+						end
+					else ''
+				end AS 'h2010',
+				case when TT1.swType ='hangul' then 
+						case when (TT1.swLicense ='h2007') then TT1.qty
+											else ''
+						end
+					else ''
+				end AS 'h2007',
+				case when TT1.swType ='hangul' then 
+						case when (TT1.swLicense ='h2005') then TT1.qty
+											else ''
+						end
+					else ''
+				end AS 'h2005',
+				case when TT1.swType ='hangul' then 
+						case when (TT1.swLicense ='h2002') then TT1.qty
+											else ''
+						end
+					else ''
+				end AS 'h2002',
+				case when TT1.swType ='hangul' then 
+						case when (TT1.swLicense ='h97') then TT1.qty
+											else ''
+						end
+					else ''
+				end AS 'h97',
+			
+		
+				case when TT1.swType ='adobe' then 
+						case when (TT1.swLicense ='A_ill_CC') then TT1.qty
+											else ''
+						end
+					else ''
+				end AS 'A_ill_CC',
+				case when TT1.swType ='adobe' then 
+						case when (TT1.swLicense ='A_PS_CC') then TT1.qty
+											else ''
+						end
+					else ''
+				end AS 'A_PS_CC',
+				case when TT1.swType ='adobe' then 
+						case when (TT1.swLicense ='DW_CC') then TT1.qty
+											else ''
+						end
+					else ''
+				end AS 'DW_CC',
+				case when TT1.swType ='adobe' then 
+						case when (TT1.swLicense ='A_Compl') then TT1.qty
+											else ''
+						end
+					else ''
+				end AS 'A_Compl',
+				case when TT1.swType ='adobe' then 
+						case when (TT1.swLicense ='A_CS6') then TT1.qty
+											else ''
+						end
+					else ''
+				end AS 'A_CS6',
+				case when TT1.swType ='adobe' then 
+						case when (TT1.swLicense ='A_CS5') then TT1.qty
+											else ''
+						end
+					else ''
+				end AS 'A_CS5',
+				case when TT1.swType ='adobe' then 
+						case when (TT1.swLicense ='PS_CS5') then TT1.qty
+											else ''
+						end
+					else ''
+				end AS 'PS_CS5',
+				case when TT1.swType ='adobe' then 
+						case when (TT1.swLicense ='CS4Pre') then TT1.qty
+											else ''
+						end
+					else ''
+				end AS 'CS4Pre',
+				case when TT1.swType ='adobe' then 
+						case when (TT1.swLicense ='A_CS4') then TT1.qty
+											else ''
+						end
+					else ''
+				end AS 'A_CS4',
+				case when TT1.swType ='adobe' then 
+						case when (TT1.swLicense ='ill_CS4') then TT1.qty
+											else ''
+						end
+					else ''
+				end AS 'ill_CS4',
+				case when TT1.swType ='adobe' then 
+						case when (TT1.swLicense ='A_CS3') then TT1.qty
+											else ''
+						end
+					else ''
+				end AS 'A_CS3',
+				case when TT1.swType ='adobe' then 
+						case when (TT1.swLicense ='A_CS2') then TT1.qty
+											else ''
+						end
+					else ''
+				end AS 'A_CS2',
+				case when TT1.swType ='adobe' then 
+						case when (TT1.swLicense ='A_CS') then TT1.qty
+											else ''
+						end
+					else ''
+				end AS 'A_CS',
+				case when TT1.swType ='adobe' then 
+						case when (TT1.swLicense ='PS_CS3') then TT1.qty
+											else ''
+						end
+					else ''
+				end AS 'PS_CS3',
+				case when TT1.swType ='adobe' then 
+						case when (TT1.swLicense ='PS_CS2') then TT1.qty
+											else ''
+						end
+					else ''
+				end AS 'PS_CS2',
+				case when TT1.swType ='adobe' then 
+						case when (TT1.swLicense ='PS_CS') then TT1.qty
+											else ''
+						end
+					else ''
+				end AS 'PS_CS',
+				case when TT1.swType ='adobe' then 
+						case when (TT1.swLicense ='ill_10') then TT1.qty
+											else ''
+						end
+					else ''
+				end AS 'ill_10',
+			
+		
+				case when TT1.swType ='graphic' then 
+						case when (TT1.swLicense ='3DMax') then TT1.qty
+											else ''
+						end
+					else ''
+				end AS '3DMax',
+				case when TT1.swType ='graphic' then 
+						case when (TT1.swLicense ='Sketchup7') then TT1.qty
+											else ''
+						end
+					else ''
+				end AS 'Sketchup7',
+				case when TT1.swType ='graphic' then 
+						case when (TT1.swLicense ='Vray3') then TT1.qty
+											else ''
+						end
+					else ''
+				end AS 'Vray3',
+			
+				case when TT1.swType ='cad' then 
+						case when (TT1.swLicense ='c2014') then TT1.qty
+											else ''
+						end
+					else ''
+				end AS 'c2014',
+				case when TT1.swType ='cad' then 
+						case when (TT1.swLicense ='c2007') then TT1.qty
+											else ''
+						end
+					else ''
+				end AS 'c2007',
+				case when TT1.swType ='cad' then 
+						case when (TT1.swLicense ='R14') then TT1.qty
+											else ''
+						end
+					else ''
+				end AS 'R14',
+			
+				case when TT1.swType ='swEtc' then 
+						case when (TT1.swLicense ='VS2008') then TT1.qty
+											else ''
+						end
+					else ''
+				end AS 'VS2008',
+				case when TT1.swType ='swEtc' then 
+						case when (TT1.swLicense ='VS2013') then TT1.qty
+											else ''
+						end
+					else ''
+				end AS 'VS2013',
+				'' AS 'fini'
+			FROM(
+				SELECT  
+					T7.highOrgCode,
+					MAX(T7.highOrgName) AS highOrgName,
+					T7.lowOrgCode,
+					MAX(T7.lowOrgName) AS lowOrgName,
+					T6.swType,
+					T6.swLicense,
+					SUM(T6.qty) AS qty
+				FROM TSW20 T5
+					inner join TSW20DT T6
+					on T5.swRegSeq = T6.swRegSeq
+					and T5.swRegDTSeq = T6.swRegDTSeq
+					inner join (
+						SELECT 
+							T10.highOrgCode,
+							T10.highOrgName,
+							T10.lowOrgCode,
+							T10.lowOrgName,
+							T10.lOrderCount,
+							T10.orgFlag,
+							CASE WHEN ISNUMERIC(T10.empCode) = 1 THEN 
+									CASE WHEN LEN(T10.empCode) <![CDATA[ < ]]> 4 THEN 
+											 REPLICATE(0,4-LEN(T10.empCode)) + T10.empCode
+										ELSE T10.empCode
+									END
+								ELSE T10.empCode
+							END AS empCode,
+							T10.empName,
+							T10.rankNum,
+							T10.position
+						FROM (
+							SELECT  
+								T2.highOrgCode,
+								T1.highOrgName,
+								T2.lowOrgCode,
+								T2.lowOrgName,
+								T2.lOrderCount,
+								T2.orgFlag,
+								CONVERT(VARCHAR,ISNULL(T4.etcLocaSeq,T3.empCode)) AS empCode,
+								ISNULL(T3.empName,T4.etcLocation) AS empName,
+								ISNULL(T3.rankNum,9999) AS rankNum,
+								ISNULL(T3.position,'') AS position
+							FROM 
+								TRM60 T1
+								inner join TRM60DT T2
+									on T1.highOrgCode = T2.highOrgCode
+									and T1.orgFlag = T2.orgFlag
+								left outer join TRM10 T3
+									on T2.lowOrgCode = T3.depCode2
+								left outer join TRM50 T4
+									on T2.lowOrgCode = T4.etcLocaSeq
+							WHERE 
+								1=1
+								and T1.orgFlag = #{orgFlag}
+								and T2.lUseYN = 'Y'		
+								<if test="highOrgCode != null and highOrgCode != '' ">
+								and T1.highOrgCode = #{highOrgCode} 
+								</if>
+								<if test="lowOrgCode != null and lowOrgCode != '' ">
+								and T2.lowOrgCode = #{lowOrgCode} 
+								</if>
+						)T10	
+				)T7
+				ON T5.LCode2 = T7.empCode
+				GROUP BY 
+					T7.highOrgCode,
+					T7.lowOrgCode,
+					T6.swType,
+					T6.swLicense
+			)TT1
+		)TT2
+		GROUP BY  
+			TT2.highOrgCode,
+			TT2.highOrgName ,
+			TT2.lowOrgCode,
+			TT2.lowOrgName
+	</select>
+	
+	<select id="swm103MiddleData" resultType="java.util.LinkedHashMap" parameterType="java.util.LinkedHashMap">
+		SELECT 
+			'총 구매 수량' as 'Flag',
+			MAX(TT2.m2016Pro) as 'm2016Pro',
+			MAX(TT2.m2016Std) as 'm2016Std',
+			MAX(TT2.m2013Pro) as 'm2013Pro',
+			MAX(TT2.m2013Std) as 'm2013Std',
+			MAX(TT2.m2010Std) as 'm2010Std',
+			MAX(TT2.m2007Pro) as 'm2007Pro',
+			MAX(TT2.m2007Std) as 'm2007Std',
+			MAX(TT2.m2003Pro) as 'm2003Pro',
+			MAX(TT2.m2003Std) as 'm2003Std',
+			MAX(TT2.m2002Std) as 'm2002Std',
+			MAX(TT2.m2002Excel) as 'm2002Excel',
+			MAX(TT2.m97Pro) as 'm97Pro',
+			MAX(TT2.m97Excel) as 'm97Excel',
+			MAX(TT2.h2014Neo) as 'h2014Neo',
+			MAX(TT2.h2014Vp) as 'h2014Vp',
+			MAX(TT2.h2014) as 'h2014',
+			MAX(TT2.h2010) as 'h2010',
+			MAX(TT2.h2007) as 'h2007',
+			MAX(TT2.h2005) as 'h2005',
+			MAX(TT2.h2002) as 'h2002',
+			MAX(TT2.h97) as 'h97',
+			MAX(TT2.A_ill_CC) as 'A_ill_CC',
+			MAX(TT2.A_PS_CC) as 'A_PS_CC',
+			MAX(TT2.DW_CC) as 'DW_CC',
+			MAX(TT2.A_Compl) as 'A_Compl',
+			MAX(TT2.A_CS6) as 'A_CS6',
+			MAX(TT2.A_CS5) as 'A_CS5',
+			MAX(TT2.PS_CS5) as 'PS_CS5',
+			MAX(TT2.CS4Pre) as 'CS4Pre',
+			MAX(TT2.A_CS4) as 'A_CS4',
+			MAX(TT2.ill_CS4) as 'ill_CS4',
+			MAX(TT2.A_CS3) as 'A_CS3',
+			MAX(TT2.A_CS2) as 'A_CS2',
+			MAX(TT2.A_CS) as 'A_CS',
+			MAX(TT2.PS_CS3) as 'PS_CS3',
+			MAX(TT2.PS_CS2) as 'PS_CS2',
+			MAX(TT2.PS_CS) as 'PS_CS',
+			MAX(TT2.ill_10) as 'ill_10',
+			MAX(TT2.g3DMax) as 'g3DMax',
+			MAX(TT2.Sketchup7) as 'Sketchup7',
+			MAX(TT2.Vray3) as 'Vray3',
+			MAX(TT2.c2014) as 'c2014',
+			MAX(TT2.c2007) as 'c2007',
+			MAX(TT2.R14) as 'R14',
+			MAX(TT2.VS2008) as 'VS2008',
+			MAX(TT2.VS2013) as 'VS2013'
+		FROM
+		(
+			SELECT 
+				CASE WHEN (TT1.swLicense ='2016Pro') THEN TT1.qty
+														ELSE 0
+				END AS 'm2016Pro',
+				CASE WHEN (TT1.swLicense ='2016Std') THEN TT1.qty
+														ELSE 0
+				END AS 'm2016Std',
+				CASE WHEN (TT1.swLicense ='2013Pro') THEN TT1.qty
+														ELSE 0
+				END AS 'm2013Pro',
+				CASE WHEN (TT1.swLicense ='2013Std') THEN TT1.qty
+														ELSE 0
+				END AS 'm2013Std',
+				CASE WHEN (TT1.swLicense ='2010Std') THEN TT1.qty
+														ELSE 0
+				END AS 'm2010Std',
+				CASE WHEN (TT1.swLicense ='2007Pro') THEN TT1.qty
+														ELSE 0
+				END AS 'm2007Pro',
+				CASE WHEN (TT1.swLicense ='2007Std') THEN TT1.qty
+														ELSE 0
+				END AS 'm2007Std',
+				CASE WHEN (TT1.swLicense ='2003Pro') THEN TT1.qty
+														ELSE 0
+				END AS 'm2003Pro',
+				CASE WHEN (TT1.swLicense ='2003Std') THEN TT1.qty
+														ELSE 0
+				END AS 'm2003Std',
+				CASE WHEN (TT1.swLicense ='2002Std') THEN TT1.qty
+														ELSE 0
+				END AS 'm2002Std',
+				CASE WHEN (TT1.swLicense ='2002Excel') THEN TT1.qty
+														ELSE 0
+				END AS 'm2002Excel',
+				CASE WHEN (TT1.swLicense ='97Pro') THEN TT1.qty
+														ELSE 0
+				END AS 'm97Pro',
+				CASE WHEN (TT1.swLicense ='97Excel') THEN TT1.qty
+														ELSE 0
+				END AS 'm97Excel',
+		
+				CASE WHEN (TT1.swLicense ='h2014Neo') THEN TT1.qty
+														ELSE 0
+				END AS 'h2014Neo',
+				CASE WHEN (TT1.swLicense ='h2014Vp') THEN TT1.qty
+														ELSE 0
+				END AS 'h2014Vp',
+				CASE WHEN (TT1.swLicense ='h2014') THEN TT1.qty
+														ELSE 0
+				END AS 'h2014',
+				CASE WHEN (TT1.swLicense ='h2010') THEN TT1.qty
+														ELSE 0
+				END AS 'h2010',
+				CASE WHEN (TT1.swLicense ='h2007') THEN TT1.qty
+														ELSE 0
+				END AS 'h2007',
+				CASE WHEN (TT1.swLicense ='h2005') THEN TT1.qty
+														ELSE 0
+				END AS 'h2005',
+				CASE WHEN (TT1.swLicense ='h2002') THEN TT1.qty
+														ELSE 0
+				END AS 'h2002',
+				CASE WHEN (TT1.swLicense ='h97') THEN TT1.qty
+														ELSE 0
+				END AS 'h97',
+				
+				CASE WHEN (TT1.swLicense ='A_ill_CC') THEN TT1.qty
+														ELSE 0
+				END AS 'A_ill_CC',
+				CASE WHEN (TT1.swLicense ='A_PS_CC') THEN TT1.qty
+														ELSE 0
+				END AS 'A_PS_CC',
+				CASE WHEN (TT1.swLicense ='DW_CC') THEN TT1.qty
+														ELSE 0
+				END AS 'DW_CC',
+				CASE WHEN (TT1.swLicense ='A_Compl') THEN TT1.qty
+														ELSE 0
+				END AS 'A_Compl',
+				CASE WHEN (TT1.swLicense ='A_CS6') THEN TT1.qty
+														ELSE 0
+				END AS 'A_CS6',
+				CASE WHEN (TT1.swLicense ='A_CS5') THEN TT1.qty
+														ELSE 0
+				END AS 'A_CS5',
+				CASE WHEN (TT1.swLicense ='PS_CS5') THEN TT1.qty
+														ELSE 0
+				END AS 'PS_CS5',
+				CASE WHEN (TT1.swLicense ='CS4Pre') THEN TT1.qty
+														ELSE 0
+				END AS 'CS4Pre',
+				CASE WHEN (TT1.swLicense ='A_CS4') THEN TT1.qty
+														ELSE 0
+				END AS 'A_CS4',
+				CASE WHEN (TT1.swLicense ='ill_CS4') THEN TT1.qty
+														ELSE 0
+				END AS 'ill_CS4',
+				CASE WHEN (TT1.swLicense ='A_CS3') THEN TT1.qty
+														ELSE 0
+				END AS 'A_CS3',
+				CASE WHEN (TT1.swLicense ='A_CS2') THEN TT1.qty
+														ELSE 0
+				END AS 'A_CS2',
+				CASE WHEN (TT1.swLicense ='A_CS') THEN TT1.qty
+														ELSE 0
+				END AS 'A_CS',
+				CASE WHEN (TT1.swLicense ='PS_CS3') THEN TT1.qty
+														ELSE 0
+				END AS 'PS_CS3',
+				CASE WHEN (TT1.swLicense ='PS_CS2') THEN TT1.qty
+														ELSE 0
+				END AS 'PS_CS2',
+				CASE WHEN (TT1.swLicense ='PS_CS') THEN TT1.qty
+														ELSE 0
+				END AS 'PS_CS',
+				CASE WHEN (TT1.swLicense ='ill_10') THEN TT1.qty
+														ELSE 0
+				END AS 'ill_10',
+					
+				CASE WHEN (TT1.swLicense ='3DMax') THEN TT1.qty
+														ELSE 0
+				END AS 'g3DMax',
+				CASE WHEN (TT1.swLicense ='Sketchup7') THEN TT1.qty
+														ELSE 0
+				END AS 'Sketchup7',
+				CASE WHEN (TT1.swLicense ='Vray3') THEN TT1.qty
+														ELSE 0
+				END AS 'Vray3',
+					
+				CASE WHEN (TT1.swLicense ='c2014') THEN TT1.qty
+														ELSE 0
+				END AS 'c2014',
+				CASE WHEN (TT1.swLicense ='c2007') THEN TT1.qty
+														ELSE 0
+				END AS 'c2007',
+				CASE WHEN (TT1.swLicense ='R14') THEN TT1.qty
+														ELSE 0
+				END AS 'R14',
+					
+				CASE WHEN (TT1.swLicense ='VS2008') THEN TT1.qty
+														ELSE 0
+				END AS 'VS2008',
+				CASE WHEN (TT1.swLicense ='VS2013') THEN TT1.qty
+														ELSE 0
+				END AS 'VS2013',
+		
+				0 AS 'fini'
+			FROM
+			(
+		
+				SELECT 
+					T1.swType,
+					T1.swLicense,
+					sum(T1.purQty) as qty
+				FROM
+					TSW10 T1
+				WHERE
+					GETDATE() between T1.startDate and T1.endDate
+				GROUP BY
+					T1.swType,
+					T1.swLicense
+			)TT1
+		)TT2
+		GROUP BY TT2.fini
+		
+		UNION
+		
+		SELECT 
+			'총 활성화 수량' as 'Flag',
+			MAX(TT4.m2016Pro) as 'm2016Pro',
+			MAX(TT4.m2016Std) as 'm2016Std',
+			MAX(TT4.m2013Pro) as 'm2013Pro',
+			MAX(TT4.m2013Std) as 'm2013Std',
+			MAX(TT4.m2010Std) as 'm2010Std',
+			MAX(TT4.m2007Pro) as 'm2007Pro',
+			MAX(TT4.m2007Std) as 'm2007Std',
+			MAX(TT4.m2003Pro) as 'm2003Pro',
+			MAX(TT4.m2003Std) as 'm2003Std',
+			MAX(TT4.m2002Std) as 'm2002Std',
+			MAX(TT4.m2002Excel) as 'm2002Excel',
+			MAX(TT4.m97Pro) as 'm97Pro',
+			MAX(TT4.m97Excel) as 'm97Excel',
+			MAX(TT4.h2014Neo) as 'h2014Neo',
+			MAX(TT4.h2014Vp) as 'h2014Vp',
+			MAX(TT4.h2014) as 'h2014',
+			MAX(TT4.h2010) as 'h2010',
+			MAX(TT4.h2007) as 'h2007',
+			MAX(TT4.h2005) as 'h2005',
+			MAX(TT4.h2002) as 'h2002',
+			MAX(TT4.h97) as 'h97',
+			MAX(TT4.A_ill_CC) as 'A_ill_CC',
+			MAX(TT4.A_PS_CC) as 'A_PS_CC',
+			MAX(TT4.DW_CC) as 'DW_CC',
+			MAX(TT4.A_Compl) as 'A_Compl',
+			MAX(TT4.A_CS6) as 'A_CS6',
+			MAX(TT4.A_CS5) as 'A_CS5',
+			MAX(TT4.PS_CS5) as 'PS_CS5',
+			MAX(TT4.CS4Pre) as 'CS4Pre',
+			MAX(TT4.A_CS4) as 'A_CS4',
+			MAX(TT4.ill_CS4) as 'ill_CS4',
+			MAX(TT4.A_CS3) as 'A_CS3',
+			MAX(TT4.A_CS2) as 'A_CS2',
+			MAX(TT4.A_CS) as 'A_CS',
+			MAX(TT4.PS_CS3) as 'PS_CS3',
+			MAX(TT4.PS_CS2) as 'PS_CS2',
+			MAX(TT4.PS_CS) as 'PS_CS',
+			MAX(TT4.ill_10) as 'ill_10',
+			MAX(TT4.g3DMax) as 'g3DMax',
+			MAX(TT4.Sketchup7) as 'Sketchup7',
+			MAX(TT4.Vray3) as 'Vray3',
+			MAX(TT4.c2014) as 'c2014',
+			MAX(TT4.c2007) as 'c2007',
+			MAX(TT4.R14) as 'R14',
+			MAX(TT4.VS2008) as 'VS2008',
+			MAX(TT4.VS2013) as 'VS2013'
+		FROM
+		(
+		
+			SELECT 
+				CASE WHEN (TT3.swLicense ='2016Pro') THEN TT3.qty
+														ELSE 0
+				END AS 'm2016Pro',
+				CASE WHEN (TT3.swLicense ='2016Std') THEN TT3.qty
+														ELSE 0
+				END AS 'm2016Std',
+				CASE WHEN (TT3.swLicense ='2013Pro') THEN TT3.qty
+														ELSE 0
+				END AS 'm2013Pro',
+				CASE WHEN (TT3.swLicense ='2013Std') THEN TT3.qty
+														ELSE 0
+				END AS 'm2013Std',
+				CASE WHEN (TT3.swLicense ='2010Std') THEN TT3.qty
+														ELSE 0
+				END AS 'm2010Std',
+				CASE WHEN (TT3.swLicense ='2007Pro') THEN TT3.qty
+														ELSE 0
+				END AS 'm2007Pro',
+				CASE WHEN (TT3.swLicense ='2007Std') THEN TT3.qty
+														ELSE 0
+				END AS 'm2007Std',
+				CASE WHEN (TT3.swLicense ='2003Pro') THEN TT3.qty
+														ELSE 0
+				END AS 'm2003Pro',
+				CASE WHEN (TT3.swLicense ='2003Std') THEN TT3.qty
+														ELSE 0
+				END AS 'm2003Std',
+				CASE WHEN (TT3.swLicense ='2002Std') THEN TT3.qty
+														ELSE 0
+				END AS 'm2002Std',
+				CASE WHEN (TT3.swLicense ='2002Excel') THEN TT3.qty
+														ELSE 0
+				END AS 'm2002Excel',
+				CASE WHEN (TT3.swLicense ='97Pro') THEN TT3.qty
+														ELSE 0
+				END AS 'm97Pro',
+				CASE WHEN (TT3.swLicense ='97Excel') THEN TT3.qty
+														ELSE 0
+				END AS 'm97Excel',
+		
+				CASE WHEN (TT3.swLicense ='h2014Neo') THEN TT3.qty
+														ELSE 0
+				END AS 'h2014Neo',
+				CASE WHEN (TT3.swLicense ='h2014Vp') THEN TT3.qty
+														ELSE 0
+				END AS 'h2014Vp',
+				CASE WHEN (TT3.swLicense ='h2014') THEN TT3.qty
+														ELSE 0
+				END AS 'h2014',
+				CASE WHEN (TT3.swLicense ='h2010') THEN TT3.qty
+														ELSE 0
+				END AS 'h2010',
+				CASE WHEN (TT3.swLicense ='h2007') THEN TT3.qty
+														ELSE 0
+				END AS 'h2007',
+				CASE WHEN (TT3.swLicense ='h2005') THEN TT3.qty
+														ELSE 0
+				END AS 'h2005',
+				CASE WHEN (TT3.swLicense ='h2002') THEN TT3.qty
+														ELSE 0
+				END AS 'h2002',
+				CASE WHEN (TT3.swLicense ='h97') THEN TT3.qty
+														ELSE 0
+				END AS 'h97',
+				
+				CASE WHEN (TT3.swLicense ='A_ill_CC') THEN TT3.qty
+														ELSE 0
+				END AS 'A_ill_CC',
+				CASE WHEN (TT3.swLicense ='A_PS_CC') THEN TT3.qty
+														ELSE 0
+				END AS 'A_PS_CC',
+				CASE WHEN (TT3.swLicense ='DW_CC') THEN TT3.qty
+														ELSE 0
+				END AS 'DW_CC',
+				CASE WHEN (TT3.swLicense ='A_Compl') THEN TT3.qty
+														ELSE 0
+				END AS 'A_Compl',
+				CASE WHEN (TT3.swLicense ='A_CS6') THEN TT3.qty
+														ELSE 0
+				END AS 'A_CS6',
+				CASE WHEN (TT3.swLicense ='A_CS5') THEN TT3.qty
+														ELSE 0
+				END AS 'A_CS5',
+				CASE WHEN (TT3.swLicense ='PS_CS5') THEN TT3.qty
+														ELSE 0
+				END AS 'PS_CS5',
+				CASE WHEN (TT3.swLicense ='CS4Pre') THEN TT3.qty
+														ELSE 0
+				END AS 'CS4Pre',
+				CASE WHEN (TT3.swLicense ='A_CS4') THEN TT3.qty
+														ELSE 0
+				END AS 'A_CS4',
+				CASE WHEN (TT3.swLicense ='ill_CS4') THEN TT3.qty
+														ELSE 0
+				END AS 'ill_CS4',
+				CASE WHEN (TT3.swLicense ='A_CS3') THEN TT3.qty
+														ELSE 0
+				END AS 'A_CS3',
+				CASE WHEN (TT3.swLicense ='A_CS2') THEN TT3.qty
+														ELSE 0
+				END AS 'A_CS2',
+				CASE WHEN (TT3.swLicense ='A_CS') THEN TT3.qty
+														ELSE 0
+				END AS 'A_CS',
+				CASE WHEN (TT3.swLicense ='PS_CS3') THEN TT3.qty
+														ELSE 0
+				END AS 'PS_CS3',
+				CASE WHEN (TT3.swLicense ='PS_CS2') THEN TT3.qty
+														ELSE 0
+				END AS 'PS_CS2',
+				CASE WHEN (TT3.swLicense ='PS_CS') THEN TT3.qty
+														ELSE 0
+				END AS 'PS_CS',
+				CASE WHEN (TT3.swLicense ='ill_10') THEN TT3.qty
+														ELSE 0
+				END AS 'ill_10',
+					
+				CASE WHEN (TT3.swLicense ='3DMax') THEN TT3.qty
+														ELSE 0
+				END AS 'g3DMax',
+				CASE WHEN (TT3.swLicense ='Sketchup7') THEN TT3.qty
+														ELSE 0
+				END AS 'Sketchup7',
+				CASE WHEN (TT3.swLicense ='Vray3') THEN TT3.qty
+														ELSE 0
+				END AS 'Vray3',
+					
+				CASE WHEN (TT3.swLicense ='c2014') THEN TT3.qty
+														ELSE 0
+				END AS 'c2014',
+				CASE WHEN (TT3.swLicense ='c2007') THEN TT3.qty
+														ELSE 0
+				END AS 'c2007',
+				CASE WHEN (TT3.swLicense ='R14') THEN TT3.qty
+														ELSE 0
+				END AS 'R14',
+					
+				CASE WHEN (TT3.swLicense ='VS2008') THEN TT3.qty
+														ELSE 0
+				END AS 'VS2008',
+				CASE WHEN (TT3.swLicense ='VS2013') THEN TT3.qty
+														ELSE 0
+				END AS 'VS2013',
+		
+				0 AS 'fini'
+			FROM
+		(
+			SELECT 
+				T3.swType,
+				T3.swLicense,
+				sum(T3.qty) as qty
+			FROM
+				TSW20 T2
+				inner join TSW20DT T3
+				on T2.swRegSeq = T3.swRegSeq
+				and T2.swRegDTSeq = T3.swRegDTSeq
+			WHERE T2.useYN = 'Y'
+			GROUP BY T3.swType,T3.swLicense
+		)TT3
+		)TT4
+		GROUP BY TT4.fini
+
+	</select>
+	
+	<select id="searchSwm104DepSwData" resultType="java.util.LinkedHashMap" parameterType="java.util.LinkedHashMap">
+		<!-- SELECT 
+			t5.orgFlag,
+			t5.highOrgCode,
+			t5.highOrgName,
+			t4.lowOrgCode,
+			t4.lowOrgName,
+			t1.LCode2,
+			t1.LCode2Name,
+			t3.position,
+			t2.swType,
+			t2.swLicense,
+			(select lowCodeName from TRM20DT
+					 where highCode = T2.swType and lowCode = t2.swLicense ) as swLicenseName,
+			t2.qty
+		FROM 
+			TSW20 t1
+			inner join TSW20DT t2
+				on t1.swRegSeq = t2.swRegSeq
+				and t1.swRegDTSeq = t2.swRegDTSeq
+			inner join TRM10 t3
+				on t1.LCode2 = t3.empCode
+			inner join TRM60DT t4
+				on t3.depCode2 = t4.lowOrgCode
+			inner join TRM60 t5
+				on t5.orgFlag = t4.orgFlag
+				and t5.highOrgCode = t4.highOrgCode
+		WHERE 
+			t1.LCode1 = #{highOrgCode}
+			and t1.useYN = 'Y'
+			and t5.orgFlag = #{orgFlag}
+			<if test="lowOrgCode != null and lowOrgCode != '' ">
+				AND t4.lowOrgCode = #{lowOrgCode}
+			</if>
+		ORDER BY 
+			t1.LCode2 ASC -->
+			
+		SELECT  
+			TT1.orgFlag,
+			TT1.highOrgCode,
+			TT1.highOrgName,
+			TT1.lowOrgCode,
+			TT1.lowOrgName,
+			TT1.empCode,
+			TT1.empName,
+			TT1.position,
+			T6.swType,
+			T6.swLicense,
+			(select lowCodeName from TRM20DT
+				 where highCode = T6.swType and lowCode = t6.swLicense ) as swLicenseName,
+			T6.qty
+		FROM TSW20 T5
+			inner join TSW20DT T6
+				on T5.swRegSeq = T6.swRegSeq
+				and T5.swRegDTSeq = T6.swRegDTSeq
+			inner join (
+				SELECT 
+					T10.highOrgCode,
+					T10.highOrgName,
+					T10.lowOrgCode,
+					T10.lowOrgName,
+					T10.lOrderCount,
+					T10.orgFlag,
+					CASE WHEN ISNUMERIC(T10.empCode) = 1 THEN 
+							CASE WHEN LEN(T10.empCode) <![CDATA[ < ]]> 4 THEN
+									 REPLICATE(0,4-LEN(T10.empCode)) + T10.empCode
+								ELSE T10.empCode
+							END
+						ELSE T10.empCode
+					END AS empCode,
+					T10.empName,
+					T10.rankNum,
+					T10.position
+				FROM (
+					SELECT  
+						T2.highOrgCode,
+						T1.highOrgName,
+						T2.lowOrgCode,
+						T2.lowOrgName,
+						T2.lOrderCount,
+						T2.orgFlag,
+						CONVERT(VARCHAR,ISNULL(T4.etcLocaSeq,T3.empCode)) AS empCode,
+						ISNULL(T3.empName,T4.etcLocation) AS empName,
+						ISNULL(T3.rankNum,9999) AS rankNum,
+						ISNULL(T3.position,'') AS position
+					FROM 
+						TRM60 T1
+						inner join TRM60DT T2
+							on T1.highOrgCode = T2.highOrgCode
+							and T1.orgFlag = T2.orgFlag
+						left outer join TRM10 T3
+							on T2.lowOrgCode = T3.depCode2
+						left outer join TRM50 T4
+							on T2.lowOrgCode = T4.etcLocaSeq
+					WHERE 
+						1=1
+						and T1.highOrgCode = #{highOrgCode}
+						and T1.orgFlag = #{orgFlag}
+						and T2.lUseYN = 'Y'
+						<if test="lowOrgCode != null and lowOrgCode != '' ">
+							AND T2.lowOrgCode = #{lowOrgCode}
+						</if>
+				)T10
+			)TT1
+			ON T5.LCode2 = TT1.empCode
+	</select>
+	
+	<select id="getHwInfoOfEtc" resultType="java.util.LinkedHashMap" parameterType="java.util.LinkedHashMap">
+		SELECT
+			rSeq,
+			(SELECT lowCodeName FROM TRM20DT WHERE highCode='hwItem' and lowCode =ItemType) as ItemType,
+			(SELECT lowCodeName FROM TRM20DT WHERE highCode='hwManufac' and lowCode = Manufac) as Manufac,
+			ModelName,
+			productDate,
+			IdentiCode,
+			LCode1,
+			LCode1Name,
+			ISNULL(Note,'') AS Note,
+			LCodeType,
+			ItemType AS ItemTypeCode,
+			Manufac AS ManufacCode
+		FROM 
+			THW10
+		WHERE
+			LCodeType = #{LCodeType}
+			AND LCode1 = #{LCode1}
+	</select>
+	
+	<select id="getSwInfoOfEtc" resultType="java.util.LinkedHashMap" parameterType="java.util.LinkedHashMap">
+		SELECT 
+			T1.swRegSeq,
+			T2.sSeq,
+			T2.swType,
+			(select lowCodeName from TRM20DT 
+			 where  highCode = 'swLicence' and lowCode = T2.swType) as swTypeName,
+			T2.swLicense,
+			(select lowCodeName from TRM20DT
+			 where highCode = T2.swType and lowCode = T2.swLicense ) as swLicenseName,
+			T1.useYN,
+			T2.qty,
+			T1.Note
+		FROM 
+			TSW20 T1
+			inner join TSW20DT T2
+			on T1.swRegSeq = T2.swRegSeq
+			and T1.swRegDTSeq = T2.swRegDTSeq
+		WHERE 
+			T1.useYN ='Y'
+			and T1.LCode2 = #{LCode1}
+			and LCodeType = #{LCodeType}
+	</select>
+	
+	<select id="swm105Search" resultType="java.util.LinkedHashMap" parameterType="java.util.LinkedHashMap">
+		
+		select 
+			T5.swRegSeq,
+			T5.swRegDTSeq,
+			T5.LCodeType,
+			T5.LCode1,
+			T5.LCode1Name,
+			TT1.lowOrgCode,
+			TT1.lowOrgName,
+			T5.LCode2,
+			T5.LCode2Name,
+			T5.Note,
+			T6.swType,
+			(select lowCodeName from TRM20DT 
+			 where  highCode = 'swLicence' and lowCode = T6.swType) as swTypeName,
+			T6.swLicense,
+			(select lowCodeName from TRM20DT
+			 where highCode = T6.swType and lowCode = T6.swLicense ) as swLicenseName,
+			T6.qty
+		from 
+			TSW20 T5
+			inner join TSW20DT T6
+			on T5.swRegSeq = T6.swRegSeq
+			and T5.swRegDTSeq = T6.swRegDTSeq
+			inner join (
+				SELECT 
+					T10.highOrgCode,
+					T10.highOrgName,
+					T10.hOrderCount,
+					T10.lowOrgCode,
+					T10.lowOrgName,
+					T10.lOrderCount,
+					T10.orgFlag,
+					CASE WHEN ISNUMERIC(T10.empCode) = 1 THEN 
+						CASE WHEN LEN(T10.empCode) <![CDATA[ < ]]> 4 THEN
+							REPLICATE(0,4-LEN(T10.empCode)) + T10.empCode
+							ELSE T10.empCode
+						END
+						ELSE T10.empCode
+					END AS empCode,
+					T10.empName,
+					T10.rankNum,
+					T10.position
+				FROM (
+					SELECT  
+						T2.highOrgCode,
+						T1.highOrgName,
+						T2.lowOrgCode,
+						T2.lowOrgName,
+						T1.hOrderCount,
+						T2.lOrderCount,
+						T2.orgFlag,
+						CONVERT(VARCHAR,ISNULL(T4.etcLocaSeq,T3.empCode)) AS empCode,
+						ISNULL(T3.empName,T4.etcLocation) AS empName,
+						ISNULL(T3.rankNum,9999) AS rankNum,
+						ISNULL(T3.position,'') AS position
+					FROM 
+						TRM60 T1
+						inner join TRM60DT T2
+						on T1.highOrgCode = T2.highOrgCode
+						and T1.orgFlag = T2.orgFlag
+						left outer join TRM10 T3
+						on T2.lowOrgCode = T3.depCode2
+						left outer join TRM50 T4
+						on T2.lowOrgCode = T4.etcLocaSeq
+					WHERE 
+						1=1
+						and T2.lUseYN = 'Y'
+					)T10
+			)TT1
+			on T5.LCode1 = TT1.highOrgCode
+			and T5.LCode2 = TT1.empCode
+		where 
+			T5.useYN = 'Y'
+			and T6.swType = #{swType}
+			<if test="swLicense != null and swLicense != '' ">
+			and T6.swLicense = #{swLicense}
+			</if>
+						
+			
+		order by 
+			T6.swType,
+			T6.swLicense,
+			TT1.hOrderCount,
+			TT1.lOrderCount
+				
+	</select>
+</mapper>

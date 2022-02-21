@@ -1,0 +1,1124 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!-- MyBatis에서 namespace는 필수적으로 명시해야 함 -->
+<mapper namespace="hwm">
+	<resultMap type="thw10" id ="thw10"/>
+	<resultMap type="trm40" id ="trm40"/>
+	<resultMap type="thw30" id ="thw30"/>
+	<resultMap type="trm60" id ="trm60"/>
+	
+	<resultMap type="thw10" id ="thw10RM">
+		<id property="rSeq" column="rSeq"/>
+		<id property="ItemType" column="ItemType"/>
+		<id property="IdentiCode" column="IdentiCode"/>
+		<id property="preUsr" column="preUsr"/>
+		<id property="Manufac" column="Manufac"/>
+		<id property="ModelName" column="ModelName"/>
+		<id property="productDate" column="productDate"/>
+		<id property="ItemStatus" column="ItemStatus"/>
+		<id property="LCode1Name" column="LCode1Name"/>
+		<id property="LCode2Name" column="LCode2Name"/>
+		<id property="purDate" column="purDate"/>
+		<id property="purNum" column="purNum"/>
+		<id property="Note" column="Note"/>
+		<association property="pagingvo" javaType="pagingvo">
+			<result property="RowNum" column="RowNum"/>
+			<result property="pageNum" column="pageNum"/>
+		</association>
+	</resultMap>
+	
+	<resultMap type="thw20" id ="thw20RM">
+		<id property="mSeq" column="mSeq"/>
+		<id property="rSeq" column="rSeq"/>
+		<id property="ItemType" column="ItemType"/>
+		<id property="ModelName" column="ModelName"/>
+		<id property="IdentiCode" column="IdentiCode"/>
+		<id property="startLCode1Name" column="startLCode1Name"/>
+		<id property="startLCode2Name" column="startLCode2Name"/>
+		<id property="startDate" column="startDate"/>
+		<id property="arrLCode1Name" column="arrLCode1Name"/>
+		<id property="arrLCode2Name" column="arrLCode2Name"/>
+		<id property="arrDate" column="arrDate"/>
+		<id property="note" column="note"/>
+		<association property="pagingvo" javaType="pagingvo">
+			<result property="RowNum" column="RowNum"/>
+			<result property="pageNum" column="pageNum"/>
+		</association>
+	</resultMap>
+	
+	<update id="HWResourceUpdate" parameterType="thw10">
+	<!--20201109 전수조사를 위해 identicode 수정  -->
+		UPDATE 
+			thw10
+		SET
+			ItemType = #{ItemType},
+			ModelName = #{ModelName},
+			productDate = #{productDate},
+			ItemStatus = #{ItemStatus},
+			inputImg = #{inputImg},
+			saveFileName  = #{saveFileName},
+			LCodeType = #{LCodeType},
+			LCode1 = #{LCode1},
+			LCode1Name = #{LCode1Name},
+			LCode2 = #{LCode2},
+			LCode2Name = #{LCode2Name},
+			purDate = #{purDate},
+			purNum = #{purNum},
+			macAdd = #{macAdd},
+			IpAddress = #{IpAddress},
+			OperSys = #{OperSys},
+			Manufac = #{Manufac},
+			Inch = #{Inch},
+			Ram = #{Ram},
+			GrapCard = #{GrapCard},
+			PcName = #{PcName},
+			Note = #{Note},
+			updateUsr = #{updateUsr},
+			updateDate = getdate(),
+			IdentiCode = #{IdentiCode}
+		WHERE
+			rSeq = #{rSeq}
+	</update>
+	
+	<insert id="HWResourceInsert" parameterType="thw10">
+		INSERT INTO thw10(
+			rSeq, ItemType, IdentiCode, ModelName, productDate,
+			ItemStatus, inputImg, saveFileName, LCodeType, LCode1, 
+			LCode1Name, LCode2, LCode2Name, purDate, purNum, 
+			inputUsr, inputDate, macAdd, IpAddress, OperSys, 
+			Manufac, Inch, Ram, GrapCard, PcName, 
+			Note
+		)VALUES(
+			#{rSeq}, #{ItemType}, #{IdentiCode}, #{ModelName}, #{productDate},
+			#{ItemStatus}, #{inputImg}, #{saveFileName}, #{LCodeType}, #{LCode1},
+			#{LCode1Name}, #{LCode2}, #{LCode2Name},#{purDate}, #{purNum}, 
+			#{inputUsr}, getdate(), #{macAdd}, #{IpAddress}, #{OperSys},
+			#{Manufac}, #{Inch},#{Ram}, #{GrapCard}, #{PcName}, 
+			#{Note}
+		)
+	</insert>
+	
+	<select id="createHWSeq" resultType="String">
+		SELECT 
+			ISNULL(MAX(rSeq),0)+1 as "rSeq"
+		FROM  
+			thw10
+	</select>
+
+	<select id="hwResourceSearch" resultType="thw10" parameterType="thw10">
+		SELECT
+			rSeq	,
+			ItemType,
+			<!-- (SELECT lowCodeName FROM TRM20DT WHERE highCode='hwItem' and lowCode =ItemType) as ItemType, -->
+			IdentiCode	,
+			ModelName	,
+			productDate	,
+			ItemStatus	,
+			inputImg	,
+			saveFileName	,
+			LCodeType	,
+			LCode1	,
+			LCode1Name,
+			LCode2	,
+			LCode2Name,
+			purDate	,
+			purNum	,
+			inputUsr	,
+			inputDate	,
+			macAdd	,
+			IpAddress	,
+			OperSys	,
+			Manufac,
+			<!-- (SELECT lowCodeName FROM TRM20DT WHERE highCode='hwManufac' and lowCode = Manufac) as Manufac, -->
+			Inch	,
+			Ram	,
+			GrapCard	,
+			PcName	,
+			Note,
+			updateDate	
+		FROM thw10
+		WHERE IdentiCode = #{IdentiCode}
+		  AND rSeq = #{rSeq}
+	</select>
+	
+	<insert id="resourceMoveHistoryRegister" parameterType="thw20">
+		INSERT INTO thw20(
+			mSeq, rSeq, IdentiCode, startLCode1, startLCode1Name, 
+			startLCode2, startLCode2Name, arrLCodeType, arrLCode1, arrLCode1Name,
+			arrLCode2, arrLCode2Name, arrDate, inputUsr, inputDate, 
+			note
+		)VALUES(
+			(SELECT ISNULL(MAX(mSeq),0)+1 FROM thw20), #{rSeq}, #{IdentiCode}, #{startLCode1}, #{startLCode1Name}, 
+			#{startLCode2}, #{startLCode2Name}, #{arrLCodeType}, #{arrLCode1}, #{arrLCode1Name}, 
+			#{arrLCode2}, #{arrLCode2Name}, #{arrDate}, #{inputUsr}, getDate(),
+			#{note}
+		)
+	</insert>
+	
+	<update id="hwResouceUpdateMovingInfo" parameterType="thw10">
+		UPDATE 
+			thw10
+		SET
+			LCodeType = #{LCodeType},
+			LCode1 = #{LCode1},
+			LCode1Name = #{LCode1Name},
+			LCode2 = #{LCode2},
+			LCode2Name = #{LCode2Name},
+			Note = #{Note},
+			updateUsr = #{updateUsr},
+			updateDate = getdate(),
+			preUsrDep = #{preUsrDep},
+			preUsr = #{preUsr}
+		WHERE
+			rSeq = #{rSeq}
+		AND IdentiCode = #{IdentiCode}
+	</update>
+	
+	<select id="searchProductInfo" resultType="thw10">
+		SELECT
+			rSeq	,
+			ItemType	,
+			IdentiCode	,
+			ModelName	,
+			productDate	,
+			LCode1	,
+			LCode1Name,
+			LCode2	,
+			LCode2Name	
+		FROM 
+			thw10
+		WHERE
+			1=1
+			and IdentiCode = #{searchProduct}
+	</select>
+	
+	<select id="getProductInfo" parameterType="thw10" resultType="thw10">
+		SELECT
+			rSeq	,
+			ItemType	,
+			IdentiCode	,
+			ModelName	,
+			productDate	,
+			LCodeType,
+			LCode1	,
+			LCode1Name,
+			LCode2	,
+			LCode2Name,
+			ISNULL(note,'') as note
+		FROM 
+			thw10
+		WHERE
+			1=1
+			and rSeq = #{rSeq}
+			<if test="IdentiCode != null and IdentiCode != '' ">
+				and IdentiCode = #{IdentiCode}
+			</if>
+			
+	</select>
+	
+	<select id="discardTargetList" resultMap="thw10RM" parameterType="thw10">
+		SELECT
+			RowNum,
+			((RowNum-1)/10)+1 as pageNum,
+			rSeq,
+			ItemType,
+			IdentiCode,
+			preUsr,
+			Manufac,
+			ModelName,
+			productDate,
+			ItemStatus,
+			LCode1Name,
+			Note
+		FROM(
+			SELECT	
+				ROW_NUMBER() over (order by productDate asc) as RowNum,
+				rSeq,
+				(SELECT lowCodeName FROM TRM20DT WHERE highCode='hwItem' and lowCode =ItemType) as ItemType,
+				IdentiCode,
+				case when (preUsrDep is null) then '['+LCode1Name+']'+LCode2Name
+					else '['+preUsrDep+'] ' + preUsr
+				end preUsr,
+				(SELECT lowCodeName FROM TRM20DT WHERE highCode='hwManufac' and lowCode = Manufac) as Manufac,
+				ModelName,
+				productDate,
+				(SELECT lowCodeName FROM TRM20DT WHERE highCode='hwStatus' and lowCode = ItemStatus) as ItemStatus,
+				LCode1Name,
+				ISNULL(Note,'') AS Note
+			FROM
+				thw10
+			WHERE 
+				ItemStatus in ('02','03')
+				and ItemType = #{ItemType}
+			)T1
+	</select>
+	
+	<select id="discardEtcTargetList" resultMap="thw10RM">
+		SELECT
+			RowNum,
+			((RowNum-1)/10)+1 as pageNum,
+			rSeq,
+			ItemType,
+			IdentiCode,
+			preUsr,
+			Manufac,
+			ModelName,
+			productDate,
+			ItemStatus,
+			LCode1Name,
+			Note
+		FROM(
+			SELECT	
+				ROW_NUMBER() over (order by productDate asc) as RowNum,
+				rSeq,
+				(SELECT lowCodeName FROM TRM20DT WHERE highCode='hwItem' and lowCode =ItemType) as ItemType,
+				IdentiCode,
+				case when (preUsrDep is null) then '['+LCode1Name+']'+LCode2Name
+					else '['+preUsrDep+'] ' + preUsr
+				end preUsr,
+				(SELECT lowCodeName FROM TRM20DT WHERE highCode='hwManufac' and lowCode = Manufac) as Manufac,
+				ModelName,
+				productDate,
+				(SELECT lowCodeName FROM TRM20DT WHERE highCode='hwStatus' and lowCode = ItemStatus) as ItemStatus,
+				LCode1Name,
+				Note
+			FROM
+				thw10
+			WHERE 
+				ItemStatus in ('02','03')
+				and ItemType not in ('PC','Mon')
+			)T1
+	</select>
+	
+	<select id="discardTotCount" resultType="int">
+		SELECT	
+			COUNT(*)
+		FROM
+			thw10
+		WHERE 
+			ItemStatus in ('02','03')	
+	</select>
+	
+	<select id="createDiscardListSeq" resultType="String">
+		SELECT 
+			ISNULL(MAX(dListSeq),0)+1 as "dListSeq"
+		FROM  
+			thw30
+	</select>
+
+	<insert id="makeDiscardListHeader" parameterType="thw30">
+		INSERT INTO thw30(
+			dListSeq, dListTitle, writeDate, pcCnt, monCnt,
+			prtCnt, totCnt, useYN, inputUsr, inputDate
+		)VALUES(
+			#{dListSeq}, #{dListTitle}, #{writeDate}, #{pcCnt}, #{monCnt},
+			#{prtCnt}, #{totCnt}, #{useYN}, #{inputUsr}, getDate()
+		)
+	</insert>
+	
+	<insert id="makeDiscardListDetailPC" parameterType="thw30"  >
+		INSERT INTO THW40(
+			dListSeq, dListTitle, totCnt, detailSeq, rSeq, inputDate
+		)SELECT 
+			#{dListSeq},
+			#{dListTitle},
+			#{totCnt},
+			#{detailSeq} + ROW_NUMBER() over (order by T1.ItemType, T1.productDate asc) as detailSeq,
+			T1.rSeq,
+			getDate()
+		FROM(
+			SELECT
+				rSeq,
+				ItemType,
+				productDate
+			FROM
+				thw10
+			WHERE 
+				ItemStatus in('02','03')
+				and ItemType ='PC'
+		)T1
+		
+	</insert>
+	
+	<insert id="makeDiscardListDetailMon" parameterType="thw30">
+		INSERT INTO THW40(
+			dListSeq, dListTitle, totCnt, detailSeq, rSeq, inputDate
+		)SELECT 
+			#{dListSeq},
+			#{dListTitle},
+			#{totCnt},
+			#{detailSeq} + ROW_NUMBER() over (order by T1.ItemType, T1.productDate asc) as detailSeq,
+			T1.rSeq,
+			getDate()
+		FROM(
+			SELECT
+				rSeq,
+				ItemType,
+				productDate
+			FROM
+				thw10
+			WHERE 
+				ItemStatus in('02','03')
+				and ItemType ='Mon'
+		)T1
+	</insert>
+	
+	<insert id="makeDiscardListDetailPrt" parameterType="thw30">
+		INSERT INTO THW40(
+			dListSeq, dListTitle, totCnt, detailSeq, rSeq, inputDate
+		)SELECT 
+			#{dListSeq},
+			#{dListTitle},
+			#{totCnt},
+			#{detailSeq} + ROW_NUMBER() over (order by T1.ItemType, T1.productDate asc) as detailSeq,
+			T1.rSeq,
+			getDate()
+		FROM(
+			SELECT
+				rSeq,
+				ItemType,
+				productDate
+			FROM
+				thw10
+			WHERE 
+				ItemStatus in('02','03')
+				and ItemType not in ('PC','Mon')
+		)T1
+	</insert>
+	
+	<select id="hwm101Search" parameterType="thw10" resultMap="thw10RM">
+		SELECT
+			RowNum,
+			((RowNum-1)/20)+1 as pageNum,
+			rSeq,
+			(SELECT lowCodeName FROM TRM20DT WHERE highCode='hwItem' and lowCode =ItemType) as ItemType,
+			<!-- ItemType, -->
+			IdentiCode,
+			ModelName,
+			Manufac,
+			productDate,
+			ItemStatus,
+			inputImg,
+			saveFileName,
+			LCodeType,
+			LCode1,
+			LCode1Name,
+			LCode2,
+			LCode2Name,
+			purDate,
+			purNum,
+			inputUsr,
+			inputDate,
+			Note
+			FROM (
+				SELECT
+					ROW_NUMBER() over (order by ${sort}) as RowNum,
+					rSeq,
+					ItemType,
+					IdentiCode,
+					ModelName,
+					(SELECT lowCodeName FROM TRM20DT WHERE highCode='hwManufac' and lowCode = Manufac) as Manufac,
+					productDate,
+					(SELECT lowCodeName FROM TRM20DT WHERE highCode='hwStatus' and lowCode = ItemStatus) as ItemStatus,
+					inputImg,
+					saveFileName,
+					LCodeType,
+					LCode1,
+					LCode1Name,
+					LCode2,
+					ISNULL(LCode2Name,'') AS LCode2Name,
+					ISNULL(purDate,'') AS purDate,
+					ISNULL(purNum,'') AS purNum,
+					inputUsr,
+					inputDate,
+					ISNULL(Note,'') AS Note
+				FROM
+					THW10
+				WHERE
+					1=1
+					AND ItemStatus NOT IN ('04')
+					<if test="ItemType != null and ItemType != '' ">
+					AND ItemType = #{ItemType}
+					</if>
+					<if test="ItemStatus != null and ItemStatus != '' ">
+					AND ItemStatus = #{ItemStatus}
+					</if>
+					<if test="ModelName != null and ModelName != '' ">
+					AND ModelName LIKE '%'+ #{ModelName} +'%'
+					</if>
+					<if test="IdentiCode != null and IdentiCode != '' ">
+					AND IdentiCode LIKE '%'+ #{IdentiCode} +'%'
+					</if>
+					<if test="LCodeType != null and LCodeType != '' ">
+					AND LCodeType = #{LCodeType}
+					</if>
+					<if test="LCode1 != null and LCode1 != '' ">
+					AND LCode1 = #{LCode1}
+					</if>
+					<if test="LCode2 != null and LCode2 != '' ">
+					AND LCode2 = #{LCode2}
+					</if>
+					<if test="Note != null and Note != '' ">
+					AND Note LIKE '%'+ #{Note} +'%'
+					</if>
+					<if test="Manufac != null and Manufac != '' ">
+					AND Manufac = #{Manufac}
+					</if>
+					<if test="productDateFrom != null and productDateFrom != '' ">
+					AND productDate BETWEEN #{productDateFrom} AND #{productDateTo}
+					</if>
+					<if test="purNum != null and purNum != '' ">
+					AND purNum LIKE '%'+ #{purNum} +'%'
+					</if>
+					<if test="purDateFrom != null and purDateFrom != '' ">
+					AND purDate BETWEEN #{purDateFrom} AND #{purDateTo}
+					</if>
+			)T1
+		order by RowNum
+	</select>
+	
+	<select id="hwm101ExcelSearch" parameterType="thw10" resultType="thw10">
+		SELECT
+			rSeq,
+			
+			ItemType,
+			IdentiCode,
+			ModelName,
+			(SELECT lowCodeName FROM TRM20DT WHERE highCode='hwManufac' and lowCode = Manufac) as Manufac,
+			productDate,
+			(SELECT lowCodeName FROM TRM20DT WHERE highCode='hwStatus' and lowCode = ItemStatus) as ItemStatus,
+			inputImg,
+			saveFileName,
+			LCodeType,
+			LCode1,
+			LCode1Name,
+			LCode2,
+			LCode2Name,
+			ISNULL(purDate,'') AS purDate,
+			ISNULL(purNum,'') AS purNum,
+			inputUsr,
+			inputDate,
+			ISNULL(Note,'') AS Note
+		FROM
+			THW10
+		WHERE
+			1=1
+			AND ItemStatus NOT IN ('04')
+			<if test="ItemType != null and ItemType != '' ">
+			AND ItemType = #{ItemType}
+			</if>
+			<if test="ItemStatus != null and ItemStatus != '' ">
+			AND ItemStatus = #{ItemStatus}
+			</if>
+			<if test="ModelName != null and ModelName != '' ">
+			AND ModelName LIKE '%'+ #{ModelName} +'%'
+			</if>
+			<if test="IdentiCode != null and IdentiCode != '' ">
+			AND IdentiCode LIKE '%'+ #{IdentiCode} +'%'
+			</if>
+			<if test="LCodeType != null and LCodeType != '' ">
+			AND LCodeType = #{LCodeType}
+			</if>
+			<if test="LCode1 != null and LCode1 != '' ">
+			AND LCode1 = #{LCode1}
+			</if>
+			<if test="LCode2 != null and LCode2 != '' ">
+			AND LCode2 = #{LCode2}
+			</if>
+			<if test="Note != null and Note != '' ">
+			AND Note LIKE '%'+ #{Note} +'%'
+			</if>
+			<if test="Manufac != null and Manufac != '' ">
+			AND Manufac = #{Manufac}
+			</if>
+			<if test="productDateFrom != null and productDateFrom != '' ">
+			AND productDate BETWEEN #{productDateFrom} AND #{productDateTo}
+			</if>
+			<if test="purNum != null and purNum != '' ">
+			AND purNum LIKE '%'+ #{purNum} +'%'
+			</if>
+			<if test="purDateFrom != null and purDateFrom != '' ">
+			AND purDate BETWEEN #{purDateFrom} AND #{purDateTo}
+			</if>
+	</select>
+	
+	<select id="hwm102Search" parameterType="thw20" resultMap="thw20RM">
+	
+		SELECT
+			RowNum,
+			((T3.RowNum-1)/20)+1 as pageNum,
+			T3.mSeq,
+			T3.rSeq,
+			T3.IdentiCode,
+			T3.ItemType,
+			T3.ModelName,
+			T3.startLCode1,
+			T3.startLCode1Name,
+			T3.startLCode2,
+			T3.startLCode2Name,
+			T3.arrLCodeType,
+			T3.arrLCode1,
+			T3.arrLCode1Name,
+			T3.arrLCode2,
+			T3.arrLCode2Name,
+			T3.startDate,
+			T3.arrDate,
+			T3.note
+		FROM(
+			SELECT
+				ROW_NUMBER() over (order by T1.mSeq desc) as RowNum,
+				T1.mSeq,
+				T1.rSeq,
+				T1.IdentiCode,
+				(SELECT lowCodeName FROM TRM20DT WHERE highCode='hwItem' and lowCode =T2.ItemType) as ItemType,
+				T2.ModelName,
+				T1.startLCode1,
+				T1.startLCode1Name,
+				T1.startLCode2,
+				T1.startLCode2Name,
+				T1.arrLCodeType,
+				T1.arrLCode1,
+				T1.arrLCode1Name,
+				T1.arrLCode2,
+				T1.arrLCode2Name,
+				T1.startDate,
+				T1.arrDate,
+				ISNULL(T1.note,'') AS note
+			FROM
+				THW20 T1
+				INNER JOIN THW10 T2
+				ON T1.IdentiCode = T2.IdentiCode
+			WHERE
+				1=1
+				<if test="IdentiCode != null and IdentiCode != '' ">
+				AND T1.IdentiCode = #{IdentiCode}
+				</if>
+				<if test="ItemType != null and ItemType != '' ">
+				AND T2.ItemType = #{ItemType}
+				</if>
+				<if test="ModelName != null and ModelName != '' ">
+				AND T2.ModelName LIKE '%'+ #{ModelName} +'%'
+				</if>
+				<if test="arrLCodeType != null and arrLCodeType != '' ">
+				AND T1.arrLCodeType = #{arrLCodeType}
+				</if>
+				<if test="arrLCode1 != null and arrLCode1 != '' ">
+				AND T1.arrLCode1 = #{arrLCode1}
+				</if>
+				<if test="arrLCode2 != null and arrLCode2 != '' ">
+				AND T1.arrLCode2 = #{arrLCode2}
+				</if>
+				<if test="startDateFrom != null and startDateFrom != '' ">
+				AND T1.startDate BETWEEN #{startDateFrom} AND #{startDateTo}
+				</if>
+				<if test="arrDateFrom != null and arrDateFrom != '' ">
+				AND T1.arrDate BETWEEN #{arrDateFrom} AND #{arrDateTo}
+				</if>
+		)T3
+			
+	</select>
+	
+	<select id="hwm104Search" parameterType="thw30" resultType="thw30">
+		SELECT
+			dListSeq,
+			dListTitle,
+			writeDate,
+			totCnt,
+			pcCnt,
+			monCnt,
+			prtCnt,
+			useYN
+		FROM
+			THW30
+		WHERE 
+			1=1
+			<if test="dListTitle != null and dListTitle != '' ">
+			AND dListTitle LIKE '%'+ #{dListTitle} +'%'
+			</if>
+			<if test="writeDateFrom != null and writeDateFrom != '' ">
+			AND writeDate BETWEEN #{writeDateFrom} AND #{writeDateTo} 
+			</if>
+			AND useYN = #{useYN}
+		ORDER BY dListSeq DESC
+	</select>
+	
+	<select id="searchDepartmentalAssets" parameterType="java.util.LinkedHashMap" resultType="java.util.LinkedHashMap">
+		SELECT
+			CASE 
+				WHEN FIN.highOrgName = FIN.LagHighOrgName THEN ''
+				WHEN FIN.GP =12 THEN  FIN.ItemType + ' 자산 수량'
+				WHEN FIN.GP =13 THEN  'TOTAL HW 자산 수량'
+				ELSE ISNULL(FIN.highOrgName,'')
+			END highOrgName,
+			CASE WHEN FIN.GP=11 THEN FIN.ItemType + ' 합계'
+				 WHEN FIN.lowOrgName = FIN.LaglowOrgName THEN ''
+				 ELSE ISNULL(FIN.lowOrgName,'')
+			END lowOrgName,
+			FIN.LCode2Name,
+			FIN.rankNum,
+			FIN.rankName,
+			CASE WHEN GP in (10,11,12,13) THEN '' 
+				ELSE FIN.ItemType
+			END AS ItemType,
+			FIN.ModelName,
+			FIN.productDate,
+			FIN.OperSys,
+			FIN.Manufac,
+			FIN.IdentiCode,
+			CASE WHEN GP in (10,11,12,13) THEN '' 
+				ELSE FIN.rSeq
+			END AS rSeq,
+			CASE WHEN GP in (10,11,12,13) THEN CONVERT(VARCHAR,FIN.qty)
+				ELSE FIN.ItemStatus
+			END AS ItemStatus,
+			CASE WHEN GP in (10,11,12,13) THEN '' 
+				ELSE FIN.Note
+			END AS Note,
+			FIN.GP
+		FROM(
+			SELECT
+				TOT.hOrderCount,
+				TOT.lOrderCount,
+				TOT.highOrgName,
+				LAG(TOT.highOrgName,1,null) OVER(PARTITION BY TOT.hOrderCount,TOT.GP ORDER BY TOT.lOrderCount, TOT.rankNum,TOT.LCode2, TOT.ItemType)as LagHighOrgName,
+				TOT.lowOrgName,
+				LAG(TOT.lowOrgName,1,null) OVER(PARTITION BY TOT.hOrderCount,TOT.GP ORDER BY TOT.lOrderCount, TOT.rankNum, TOT.LCode2 ,TOT.ItemType)as LaglowOrgName,
+				ISNULL(TOT.LCode2,'') AS LCode2,
+				ISNULL(TOT.LCode2Name,'') AS LCode2Name,
+				ISNULL(TOT.rankNum,'') AS rankNum,
+				ISNULL(TOT.rankName,'') AS rankName,
+				ISNULL(TOT.ItemType,'') AS ItemType,
+				TOT.ModelName,
+				TOT.productDate,
+				TOT.OperSys,
+				ISNULL(TOT.Manufac,'') AS Manufac,
+				ISNULL(TOT.IdentiCode,'') AS IdentiCode,
+				ISNULL(TOT.rSeq,'') AS rSeq,
+				TOT.ItemStatus,
+				TOT.Note,
+				TOT.GP,
+				TOT.qty
+			FROM(
+				SELECT
+					ISNULL(SUB.hOrderCount,99) AS hOrderCount,
+					SUB.ItemType,
+					SUB.lOrderCount AS lOrderCount,
+					SUB.highOrgName,
+					SUB.lowOrgName,
+					SUB.LCode2Name,
+					SUB.LCode2,
+					SUB.rankNum,
+					SUB.rankName,
+					ISNULL(SUB.ModelName,'') AS ModelName,
+					SUBSTRING(ISNULL(SUB.productDate,''),0,8) AS productDate,
+					ISNULL(SUB.OperSys,'') AS OperSys,
+					SUB.Manufac,
+					SUB.IdentiCode,
+					SUB.rSeq,
+					MAX(SUB.ItemStatus) AS ItemStatus,
+					MAX(SUB.Note) AS Note,
+					COUNT(*) AS qty,
+					GROUPING(SUB.hOrderCount) + GROUPING(SUB.lOrderCount) + GROUPING(SUB.rankNum) +
+					GROUPING(SUB.highOrgName) + GROUPING(SUB.lowOrgName) + GROUPING(SUB.LCode2Name) +
+					GROUPING(SUB.LCode2) + GROUPING(SUB.rankName) + GROUPING(SUB.ItemType) +
+					GROUPING(SUB.ModelName) + GROUPING(SUB.Manufac) + GROUPING(SUB.IdentiCode) +
+					GROUPING(SUB.rSeq) AS GP
+				FROM(
+					SELECT
+						TT1.ItemType,
+						TT1.Manufac,
+						TT1.ModelName,
+						TT1.productDate,
+						TT1.OperSys,
+						TT1.ItemStatus,
+						TT1.IdentiCode,
+						TT1.rSeq,
+						TT1.LCode1,
+						TT1.LCode2,
+						TT1.LCode2Name,
+						TT1.Note,
+						TT1.highOrgCode,
+						TT1.highOrgName,
+						TT1.lowOrgCode,
+						TT1.lowOrgName,
+						TT1.hOrderCount,
+						TT1.lOrderCount,
+						TT1.rankNum,
+						TT1.rankName
+					FROM(
+						SELECT
+							(SELECT lowCodeName FROM TRM20DT WHERE highCode='hwItem' and lowCode =T1.ItemType) as ItemType,
+							(SELECT lowCodeName FROM TRM20DT WHERE highCode='hwManufac' and lowCode = T1.Manufac) as Manufac,
+							T1.ModelName,
+							T1.productDate,
+							<!-- T1.OperSys, -->
+							case when T1.ItemType = 'pc' then T1.OperSys
+								 when T1.ItemType = 'mon' then T1.Inch
+							end as OperSys,
+							(SELECT lowCodeName FROM TRM20DT WHERE highCode='hwStatus' and lowCode = T1.ItemStatus) as ItemStatus,
+							CONVERT(VARCHAR,T1.rseq) AS rseq,
+							T1.IdentiCode,
+							T1.LCode1,
+							T1.LCode2,
+							T1.LCode2Name,
+							ISNULL(T1.Note,'') as Note,
+							ISNULL(T3.highOrgCode,T6.highOrgCode) AS highOrgCode,
+							ISNULL(T3.highOrgName,T6.highOrgName) AS highOrgName,
+							ISNULL(T2.lowOrgCode,T5.lowOrgCode) AS lowOrgCode,
+							ISNULL(T2.lowOrgName,T5.lowOrgName) AS lowOrgName,
+							CONVERT(int,ISNULL(T3.hOrderCount,T6.hOrderCount)) as hOrderCount,
+							CONVERT(int,ISNULL(T2.lOrderCount,99)) as lOrderCount,
+							ISNULL(T4.rankNum,'9999') as rankNum,
+							ISNULL(T4.rankName,'') as  rankName
+						FROM THW10 T1
+							left outer join TRM10 T4
+							on T1.LCode2 = T4.empCode
+							left outer join TRM60DT T2
+							on T4.depCode2 = T2.lowOrgCode
+							<if test="orgFlag == 'FAC' ">
+							and T2.orgFlag in ('FAC')
+							</if>
+							<if test="orgFlag == 'HQ' ">
+							and T2.orgFlag in ('HQ')
+							</if>
+							left outer join TRM60 T3
+							on T2.highOrgCode = T3.highOrgCode
+							and T2.orgFlag = T3.orgFlag
+							
+							left outer join TRM60DT T5
+							on T1.LCode2 = T5.lowOrgCode
+							<if test="orgFlag == 'FAC' ">
+							and T5.orgFlag in ('FAC')
+							</if>
+							<if test="orgFlag == 'HQ' ">
+							and T5.orgFlag in ('HQ')
+							</if>
+							left outer join TRM60 T6
+							on T5.highOrgCode = T6.highOrgCode
+							and T5.orgFlag = T6.orgFlag
+						WHERE 1=1
+							<!-- AND  T1.ItemStatus NOT IN ('04') -->
+							AND  T1.ItemStatus IN ('01')
+							<if test="orgFlag == 'HQ' ">
+							AND T1.LCodeType in ('com','empty','etc','div')
+							</if>
+							<if test="orgFlag == 'REG' ">
+							AND T1.LCodeType in ('reg','rEmpty')
+							</if>
+							<if test="orgFlag == 'FAC' ">
+							AND T1.LCodeType in ('fac','fEmpty','fetc','fDiv')
+							</if>
+							<if test="orgFlag == 'AGEN' ">
+							AND T1.LCodeType in ('agen')
+							</if>
+							<if test="ItemType != null and ItemType !='' ">
+							AND T1.ItemType = #{ItemType}
+							</if>
+					)TT1
+					WHERE 1=1
+					<if test="highOrgCode != null and highOrgCode != '' ">
+					AND TT1.highOrgCode = #{highOrgCode}
+					</if>
+					<if test="lowOrgCode != null and lowOrgCode != '' ">
+					AND TT1.lowOrgCode = #{lowOrgCode}
+					</if>
+				)SUB
+				GROUP BY 
+					SUB.ItemType,
+					SUB.hOrderCount,
+					SUB.highOrgName,
+					SUB.lOrderCount,
+					SUB.lowOrgName,
+					SUB.LCode2Name,
+					SUB.LCode2,
+					SUB.rankNum,
+					SUB.rankName,
+					SUB.ModelName,
+					SUB.productDate,
+					SUB.OperSys,
+					SUB.Manufac,
+					SUB.IdentiCode,
+					SUB.rSeq
+				WITH ROLLUP
+				HAVING  
+					GROUPING(SUB.hOrderCount) + GROUPING(SUB.lOrderCount) + GROUPING(SUB.rankNum) +
+					GROUPING(SUB.highOrgName) + GROUPING(SUB.lowOrgName) + GROUPING(SUB.LCode2Name) +
+					GROUPING(SUB.LCode2) + GROUPING(SUB.rankName) + GROUPING(SUB.ItemType) +
+					GROUPING(SUB.ModelName) + GROUPING(SUB.Manufac) + GROUPING(SUB.IdentiCode) +
+					GROUPING(SUB.rSeq)
+					NOT IN(1,2,3,4,5,6,7,8,9,10)
+				)TOT
+			)FIN
+		ORDER BY FIN.hOrderCount,FIN.GP, FIN.lOrderCount, FIN.rankNum, FIN.LCode2, FIN.LCode2Name, FIN.ItemType ASC
+	</select>
+	
+	<select id="searchAnnualAssets" parameterType="java.util.LinkedHashMap" resultType="java.util.LinkedHashMap">
+		SELECT
+			TOT.RowNum,
+			((TOT.RowNum -1)/20) + 1 AS pageNum,
+			TOT.rSeq,
+			CONVERT(VARCHAR,TOT.years)+' 년차' as years,
+			TOT.ItemType,
+			TOT.Manufac,
+			TOT.ModelName,
+			TOT.highOrgCode,
+			TOT.highOrgName,
+			TOT.lowOrgCode,
+			TOT.lowOrgName,
+			TOT.LCode2,
+			TOT.LCode2Name,
+			TOT.ItemStatus,
+			TOT.productDate,
+			TOT.IdentiCode
+			FROM 
+			(
+			SELECT
+				ROW_NUMBER() OVER(order by TT1.productDate, TT1.ItemType, TT1.ModelName asc) as RowNum,
+				TT1.rSeq,
+				TT1.years,
+				TT1.ItemType,
+				TT1.Manufac,
+				TT1.ModelName,
+				TT1.highOrgCode,
+				TT1.highOrgName,
+				TT1.lowOrgCode,
+				TT1.lowOrgName,
+				TT1.LCode2,
+				TT1.LCode2Name,
+				TT1.ItemStatus,
+				TT1.productDate,
+				TT1.IdentiCode
+			FROM (
+				SELECT 
+					T1.rSeq,
+					datediff(yy,T1.productDate,GETDATE()) as years,
+					(SELECT lowCodeName FROM TRM20DT WHERE highCode='hwItem' and lowCode =T1.ItemType) as ItemType,
+					(SELECT lowCodeName FROM TRM20DT WHERE highCode='hwManufac' and lowCode = T1.Manufac) as Manufac,
+					T1.ModelName,
+					T1.LCodeType,
+					T1.LCode1,
+					T1.LCode1Name,
+					T1.LCode2,
+					T1.LCode2Name,
+					ISNULL(ISNULL(T3.highOrgCode,T6.highOrgCode),'') AS highOrgCode,
+					ISNULL(ISNULL(T3.highOrgName,T6.highOrgName),'') AS highOrgName,
+					ISNULL(ISNULL(T2.lowOrgCode,T5.lowOrgCode),'') AS lowOrgCode,
+					ISNULL(ISNULL(T2.lowOrgName,T5.lowOrgName),'') AS lowOrgName,
+					(SELECT lowCodeName FROM TRM20DT WHERE highCode='hwStatus' and lowCode = T1.ItemStatus) as ItemStatus,
+					T1.productDate,
+					T1.IdentiCode
+				FROM 
+					THW10 T1
+					left outer join TRM10 T4
+					on T1.LCode2 = T4.empCode
+					left outer join TRM60DT T2
+					on T4.depCode2 = T2.lowOrgCode
+					left outer join TRM60 T3
+					on T2.highOrgCode = T3.highOrgCode
+					and T2.orgFlag = T3.orgFlag
+					
+					left outer join TRM60DT T5
+					on T1.LCode2 = T5.lowOrgCode
+					left outer join TRM60 T6
+					on T5.highOrgCode = T6.highOrgCode
+					and T5.orgFlag = T6.orgFlag
+				WHERE
+					1=1
+					<if test="ItemType != null and ItemType != '' ">
+					AND T1.ItemType = #{ItemType} 
+					</if>
+					
+					<if test="orgFlag == 'HQ' ">
+					AND T1.LCodeType in ('com','empty','etc','div')
+					</if>
+					<if test="orgFlag == 'REG' ">
+					AND T1.LCodeType in ('reg','rEmpty')
+					</if>
+					<if test="orgFlag == 'FAC' ">
+					AND T1.LCodeType in ('fac','fEmpty','fetc','fDiv')
+					</if>
+					<if test="orgFlag == 'AGEN' ">
+					AND T1.LCodeType in ('agen')
+					</if>
+					AND T1.ItemStatus not in ('04')
+					
+				)TT1
+			WHERE
+				1=1
+				<if test="toYears ==''">
+				AND TT1.years >= #{fromYears}
+				</if>
+				<if test="toYears !=''">
+				AND TT1.years BETWEEN #{fromYears} and #{toYears}
+				</if>
+				<if test="highOrgCode != null and highOrgCode != '' ">
+				AND TT1.highOrgCode = #{highOrgCode}
+				</if>
+				<if test="lowOrgCode != null and lowOrgCode != '' ">
+				AND TT1.lowOrgCode = #{lowOrgCode}
+				</if>
+			)TOT
+
+	</select>
+	
+	<update id="updateDListFlagN" parameterType="thw30">
+		UPDATE 
+			THW30 
+		SET 
+			useYN = 'N'
+		WHERE 
+			dListSeq IN
+			<foreach collection="dListSeqs" item="item" index="index" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+	</update>
+	
+	
+	<select id="hwm105DListHead" parameterType="thw30" resultType="java.util.LinkedHashMap">
+		SELECT 
+			dListSeq,
+			dListTitle,
+			writeDate,
+			pcCnt,
+			monCnt,
+			prtCnt,
+			totCnt,
+			useYN
+		FROM 
+			THW30
+		WHERE
+			dListSeq = #{dListSeq}
+	</select>
+	
+	<select id="hwm105DListDetail" parameterType="thw30" resultType="java.util.LinkedHashMap">
+		SELECT 
+			T1.detailSeq,
+			T1.rSeq,
+			(SELECT lowCodeName FROM TRM20DT WHERE highCode='hwItem' and lowCode =T2.ItemType) as ItemType,
+			(SELECT lowCodeName FROM TRM20DT WHERE highCode='hwManufac' and lowCode = T2.Manufac) as Manufac,
+			T2.ModelName,
+			T2.productDate,
+			T2.LCode1Name,
+			T2.IdentiCode,
+			(SELECT lowCodeName FROM TRM20DT WHERE highCode='hwStatus' and lowCode = T2.ItemStatus) as ItemStatus,
+			ISNULL(T2.Note,'') AS Note
+		FROM 
+			THW40 T1
+			inner join THW10 T2
+			on T1.rSeq = T2.rSeq
+		WHERE 
+			dListSeq = #{dListSeq}
+		order by 
+			T1.rSeq ASC
+	</select>
+	
+	<update id="hwDiscardUpdate" parameterType="thw30">
+		UPDATE 
+			THW10
+		SET
+			ItemStatus = '05' 
+		WHERE rseq in (
+			SELECT 
+				rSeq
+			FROM 
+				THW40
+			WHERE 
+				dListSeq = #{dListSeq}
+		)
+		
+	</update>
+	
+	<update id="hwDiscardListUpdate" parameterType="thw30">
+		UPDATE
+			THW30
+		SET
+			useYN='D'
+		WHERE
+			dListSeq = #{dListSeq}
+	</update>
+	
+	<select id ="employeeHw" resultType="thw10" parameterType="String">
+		SELECT
+			rSeq	,
+			(SELECT lowCodeName FROM TRM20DT WHERE highCode='hwItem' and lowCode = ItemType) as ItemType	,
+			IdentiCode	,
+			ModelName	,
+			productDate	,
+			LCode1	,
+			LCode1Name,
+			LCode2	,
+			LCode2Name	
+		FROM 
+			thw10
+		WHERE
+			1=1
+			and LCode2 = #{empCode}
+	</select>
+	
+	<update id="orgMovingUpdateHWInfo" parameterType="thw20">
+		UPDATE
+			THW10
+		SET
+			LCodeType = #{arrLCodeType},
+			LCode1 = #{arrLCode1},
+			LCode1Name = #{arrLCode1Name},
+			LCode2 = #{arrLCode2},
+			Note = #{note},
+			updateUsr = #{inputUsr},
+			updateDate = GETDATE()
+		WHERE
+			rSeq = #{rSeq}
+	</update>
+	
+	<select id="hwm005CheckTarget" resultType="java.util.LinkedHashMap">
+		SELECT 
+			T1.empCode,
+			replace(T1.empName,'o','')as empName,
+			T4.highOrgCode,
+			T4.highOrgName,
+			T3.lowOrgCode,
+			T3.lowOrgName,
+			T2.LCode1,
+			T2.LCode1Name,
+			T2.rSeq,
+			(SELECT lowCodeName FROM TRM20DT WHERE highCode='hwItem' and lowCode = T2.ItemType) as ItemType,
+			T2.identiCode,
+			T2.ModelName,
+			T2.productDate
+		FROM 
+			TRM10 T1
+			inner join THW10 T2
+			on T1.empCode = T2.LCode2
+			inner join TRM60DT T3
+			on T1.depCode2 = T3.lowOrgCode
+			inner join TRM60 T4
+			on T4.highOrgCode = T3.highOrgCode
+			and T4.orgFlag = T3.orgFlag
+			
+		WHERE 
+			T4.highOrgCode !=T2.LCode1
+	</select>
+	
+	<select id="getUsrOrgInfo" parameterType="java.util.LinkedHashMap" resultType="java.util.LinkedHashMap">
+		SELECT
+			T2.orgFlag,
+			T1.highOrgCode,
+			T1.highOrgName,
+			T2.lowOrgCode,
+			T2.lowOrgName,
+			T3.empCode
+		FROM TRM60 T1
+			left outer join TRM60DT T2
+			ON T1.highOrgCode = T2.highOrgCode
+			AND T1.orgFlag = T2.orgFlag
+			inner join TRM10 T3
+			ON T2.lowOrgCode = T3.depCode2
+		WHERE
+			1=1 
+			and T3.empCode = #{empCode}
+		ORDER BY T1.hOrderCount,T2.lOrderCount,T3.rankNum ASC
+	</select>
+	
+</mapper>

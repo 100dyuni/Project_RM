@@ -1,0 +1,208 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!-- MyBatis에서 namespace는 필수적으로 명시해야 함 -->
+<mapper namespace="modal">
+	<resultMap type="trm10" id ="trm10"/>
+	<resultMap type="thw10" id ="thw10"/>
+	<resultMap type="trm40" id ="trm40"/>
+	<resultMap type="trm50" id ="trm50"/>
+	<resultMap type="trm60" id ="trm60"/>
+	<resultMap type="trm70" id ="trm70"/>
+	
+	<select id ="modalSearchEmp" resultMap="trm10">
+		SELECT
+			empCode,
+			replace(empName,'o','') as empName,
+			depCode1,
+			depName1,
+			rankNum,
+			rankName,
+			position,
+			depCode2,
+			depName2
+		FROM
+			TRM10
+		WHERE 1=1
+			AND replace(empName,' ','') LIKE '%'+#{searchEmp}+'%'
+	</select>
+	
+	<select id ="modalSearchTarget" resultMap="trm40">
+		SELECT 
+			agencyName,
+			manageDep,
+			manageDepName,
+			manageEmp,
+			manageEmpName,
+			activeFlg,
+			aSeq
+		FROM 
+			TRM40
+		WHERE 
+			activeFlg ='Y'
+		and agencyName LIKE '%'+#{searchTarget}+'%'
+	</select>
+
+	<select id ="modalSearchProduct" resultMap="thw10">
+		SELECT
+			rSeq	,
+			ItemType	,
+			IdentiCode	,
+			ModelName	,
+			productDate	,
+			LCode1	,
+			LCode1Name,
+			LCode2	,
+			LCode2Name	
+		FROM 
+			thw10
+		WHERE
+			1=1
+			and ((replace(LCode2Name,' ','') like '%'+#{searchProduct}+'%') or
+				 (LCode1Name like '%'+#{searchProduct}+'%'))
+	</select>
+	
+	<select id = "modalSearchEtcLocation" resultMap="trm50" parameterType="String">
+		SELECT 
+			etcLocaSeq, 
+			etcLocation
+		FROM 
+			trm50
+		WHERE 1=1
+			AND etcLocaType = #{searchLocation}
+	</select>
+	
+	<insert id ="etcLocationRegister" parameterType="trm50">
+		INSERT INTO trm50(etcLocaSeq,etcLocation,inputDate,etcLocaType)
+		VALUES((SELECT ISNULL(MAX(etcLocaSeq),0)+1 FROM trm50) ,#{etcLocation},GETDATE(),#{etcLocaType});
+	</insert>
+	
+	<update id="hwFlagUpdate" parameterType="thw10">
+		UPDATE 
+			thw10
+		SET
+			ItemStatus = #{ItemStatus},
+			updateUsr = #{updateUsr},
+			updateDate = getdate()
+		WHERE
+			rSeq = #{rSeq}
+		AND IdentiCode = #{IdentiCode}
+	</update>
+	
+	<select id="simpleHWMoveingHistorySeach" parameterType="thw20" resultType="thw20">
+		SELECT
+				TOP 5
+				T1.rSeq,
+				T1.IdentiCode,
+				CASE T2.ItemType WHEN 'PC' THEN 'PC'
+								 WHEN 'Mon' THEN '모니터'
+								 WHEN 'PRT' THEN '프린터'
+				END ItemType,
+				T2.ModelName,
+				T1.startLCode2,
+				T1.startLCode2Name,
+				T1.arrLCodeType,
+				T1.arrLCode1,
+				T1.arrLCode1Name,
+				T1.arrLCode2,
+				CASE T1.arrLCode2Name WHEN '' THEN T1.arrLCode1Name
+									  WHEN NULL THEN T1.arrLCode1Name
+									  ELSE T1.arrLCode2Name
+				END arrLCode2Name,
+				T1.arrDate,
+				ISNULL(T1.note,'') AS note
+			FROM
+				THW20 T1
+				INNER JOIN THW10 T2
+				ON T1.IdentiCode = T2.IdentiCode
+			WHERE
+				1=1
+				AND T1.IdentiCode = #{IdentiCode}
+				AND T1.rSeq = #{rSeq}
+			ORDER BY T1.mSeq desc
+	</select>
+	
+	<select id="modalSearchTeam" parameterType="String" resultType="trm10">
+		SELECT 
+			distinct(depCode2) as depCode2,
+			depName2,
+			isnull(depCode1,'') as depCode1,
+			isnull(depName1,'') as depName1
+		FROM TRM10
+		WHERE 1=1
+			AND ((depName1 LIKE '%'+#{searchTeam}+'%') OR (depName2 LIKE '%'+#{searchTeam}+'%')) 
+			
+	</select>
+	
+	<select id ="modalSearchHighOrg" resultType="trm60" parameterType="trm60">
+		SELECT
+			highOrgCode,
+			highOrgName,
+			hOrderCount
+		FROM 
+			TRM60
+		WHERE 
+			hUseYN ='Y'
+			AND orgFlag =#{orgFlag}
+		ORDER BY highOrgName ASC
+	</select>
+	<select id="createEtcLCodeTypeSB" parameterType="String" resultType="java.util.LinkedHashMap">
+		SELECT
+			highCode,
+			lowCode,
+			lowCodeName,
+			useYN,
+			orderCount
+		FROM
+			TRM20DT
+		WHERE 1=1
+			and useYN ='Y'		
+			and highCode ='lCode'
+			and lowCode like '%etc' 
+		order by CONVERT(int,orderCount) asc
+	</select>
+
+	<delete id="deleteTelDirectory">
+		DELETE FROM TRM70
+	</delete>
+	
+	<insert id="insertTelDirectory" parameterType="trm70">
+		INSERT INTO 
+			TRM70 (pdFlag, name, tel)
+		VALUES 
+			(#{pdFlag}, #{name}, #{tel});
+	</insert>
+	
+	<select id="phoneDirecSearch" resultType="java.util.LinkedHashMap">
+		SELECT
+			pdFlag,
+			name,
+			tel
+		FROM
+			TRM70
+	</select>
+	
+	<select id= "modalSearchLowOrg" resultType="java.util.LinkedHashMap" parameterType="trm60">
+		SELECT
+			highOrgCode,
+			lowOrgCode,
+			lowOrgName,
+			lUseYN,
+			lOrderCount
+		FROM
+			TRM60DT
+		WHERE
+			1=1
+			<if test="highOrgCode != null and highOrgCode != '' ">
+			and highOrgCode = #{highOrgCode}
+			</if>	
+			<if test="orgFlag != null and orgFlag != '' ">
+			and orgFlag = #{orgFlag}
+			</if>
+			and lUseYN = 'Y'
+		ORDER BY 
+			CONVERT(INT,lOrderCount) ASC
+	</select>
+	
+</mapper>

@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!-- MyBatis에서 namespace는 필수적으로 명시해야 함 -->
+<mapper namespace="file">
+	<resultMap type="trm30" id ="trm30"/>
+	
+	<insert id="filHistoryInsert" parameterType="trm30">
+		INSERT INTO trm30(
+			iseq, 
+			IdentiCode, uuid, pgid, insertDate
+		)VALUES(
+			(SELECT 
+				ISNULL(MAX(iSeq),0)+1
+			FROM  
+			trm30), 
+			#{IdentiCode}, #{UUID}, #{pgid}, getdate()
+		)
+	</insert>
+	
+	<select id="findServerFileName" resultMap="trm30">
+		SELECT TOP 1
+			IdentiCode,
+			UUID
+		FROM  
+			trm30
+		WHERE 
+			IdentiCode =#{IdentiCode}
+		ORDER BY iseq DESC
+	</select>
+	
+	<update id="updateFileNameTHW10" parameterType="trm30">
+		UPDATE THW10 SET saveFileName = #{UUID} WHERE IdentiCode=#{IdentiCode}
+	</update>
+	
+	
+</mapper>

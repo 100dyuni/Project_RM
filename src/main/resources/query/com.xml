@@ -1,0 +1,604 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!-- MyBatis에서 namespace는 필수적으로 명시해야 함 -->
+<mapper namespace="com">
+	<resultMap type="trm10" id ="trm10"/>
+	<resultMap type="trm20" id ="trm20"/>
+	<resultMap type="trm40" id ="trm40"/>
+	<resultMap type="trm60" id ="trm60"/>
+	
+	<select id="highCodeSearch" resultMap="trm20" parameterType="trm20">
+		SELECT 
+			highCode, 
+			highCodeName
+		FROM 
+			TRM20
+		WHERE 
+			1=1
+			<if test="highCode != null and highCode != '' ">
+			and highCode like '%'+ #{highCode} +'%'
+			</if>		
+			<if test="highCodeName != null and highCodeName !='' ">
+			and highCodeName like '%'+ #{highCodeName} +'%'
+			</if>		
+		order by highCodeName asc
+		
+	</select>
+	
+	<select id="lowCodeSearch" resultMap="trm20" parameterType="trm20">
+		SELECT
+			highCode,
+			lowCode,
+			lowCodeName,
+			useYN,
+			orderCount
+		FROM
+			TRM20DT
+		WHERE 1=1
+			<if test="highCode != null and highCode != '' ">
+			and highCode like '%'+ #{highCode} +'%'
+			</if>		
+		order by CONVERT(int,orderCount) asc
+	</select>
+	
+	<select id="createSelectBox" resultMap="trm20" parameterType="trm20">
+		SELECT
+			highCode,
+			lowCode,
+			lowCodeName,
+			useYN,
+			orderCount
+		FROM
+			TRM20DT
+		WHERE 1=1
+			<if test="highCode != null and highCode != '' ">
+			and highCode like '%'+ #{highCode} +'%'
+			</if>
+			and useYN ='Y'		
+		order by CONVERT(int,orderCount) asc
+	</select>
+	
+	<insert id="insertHighCode" parameterType="trm20">
+		INSERT INTO TRM20 (highCode,highCodeName,inputDate)
+		VALUES (#{highCode},#{highCodeName},GETDATE())
+	</insert>
+	
+	<update id="updateLowCode" parameterType="trm20">
+		UPDATE 
+			TRM20DT
+		SET 
+			lowCodeName = #{lowCodeName},
+			useYN = #{useYN},
+			orderCount = #{orderCount},
+			updateDate = getdate()
+		WHERE 
+			highCode = #{highCode}
+			and lowCode = #{lowCode}
+	</update>
+	
+	<insert id="insertLowCode" parameterType="trm20">
+		INSERT INTO TRM20DT (highCode,lowCode,lowCodeName,useYN,orderCount,inputDate)
+		VALUES (#{highCode},#{lowCode},#{lowCodeName},#{useYN},#{orderCount},GETDATE());
+	</insert>
+	
+	<select id = "searchTargetInfo" resultType="trm40">
+		SELECT
+			aSeq,
+			agencyName,
+			activeFlg,
+			manageDep,
+			manageDepName,
+			manageEmp,
+			manageEmpName,
+			inputUsr,
+			inputDate,
+			updateUsr,
+			updateDate		
+		FROM
+			TRM40
+		WHERE
+			aSeq = #{aSeq}
+	</select>
+	
+	<select id="createTASeq" resultType="String">
+		<!-- SELECT 
+			ISNULL(MAX(aSeq),0)+1 as "aSeq"
+		FROM  
+			TRM40 -->
+		SELECT 
+			COUNT(*) +1 as "aSeq"
+		FROM  
+			TRM40
+	</select>
+	
+	<update id="targetAgencyUpdate" parameterType="trm40">
+		UPDATE 
+			TRM40
+		SET
+			agencyName = #{agencyName}, 
+			activeFlg = #{activeFlg}, 
+			manageDep = #{manageDep}, 
+			manageDepName = #{manageDepName},
+			manageEmp = #{manageEmp}, 
+			manageEmpName = #{manageEmpName},
+			updateUsr = #{updateUsr},
+			updateDate = getdate()
+		WHERE
+			aSeq = #{aSeq}
+	</update>
+	
+	<insert id="targetAgencyInsert" parameterType="trm40">
+		INSERT INTO TRM40(
+			aSeq, agencyName, activeFlg, manageDep, manageDepName,
+			manageEmp, manageEmpName, inputUsr, inputDate
+		)VALUES(
+			#{aSeq}, #{agencyName}, #{activeFlg}, #{manageDep}, #{manageDepName},
+			#{manageEmp}, #{manageEmpName}, #{inputUsr}, getdate()
+		)
+	</insert>
+	
+	<select id="agencyListSearch" parameterType="trm40" resultType="trm40">
+		SELECT
+			aSeq,
+			agencyName,
+			activeFlg,
+			manageDep,
+			manageDepName,
+			manageEmp,
+			manageEmpName
+		FROM
+			TRM40
+		WHERE
+			1=1
+			<if test="agencyName != null and agencyName != '' ">
+			and agencyName like '%'+#{agencyName} + '%'
+			</if>
+			<if test="activeFlg != null and activeFlg != '' ">
+			and activeFlg = #{activeFlg}
+			</if>
+	</select>
+	
+	<insert id="insertHighOrg" parameterType="trm60">
+		INSERT INTO TRM60 (orgFlag,highOrgCode,highOrgName,hUseYN,hOrderCount,inputDate)
+		VALUES (#{orgFlag},#{highOrgCode},#{highOrgName},#{hUseYN},#{hOrderCount},GETDATE())
+	</insert>
+	
+	<update id="updateHighOrg" parameterType="trm60">
+		UPDATE 
+			TRM60
+		SET 
+			orgFlag = #{orgFlag},
+			highOrgName = #{highOrgName},
+			hUseYN = #{hUseYN},
+			hOrderCount = #{hOrderCount},
+			updateDate = getdate()
+		WHERE 
+			highOrgCode = #{highOrgCode}
+			AND orgFlag = #{orgFlag}
+	</update>
+	
+	<select id="searchHighOrgInfo" parameterType="trm60" resultType="trm60">
+		SELECT
+			orgFlag,
+			highOrgCode,
+			highOrgName,
+			hUseYN,
+			hOrderCount
+		FROM
+			TRM60
+		WHERE
+			1=1
+			<if test="highOrgCode != null and highOrgCode != '' ">
+			AND highOrgCode like '%'+ #{highOrgCode} +'%'
+			</if>		
+			<if test="highOrgName != null and highOrgName !='' ">
+			AND highOrgName like '%'+ #{highOrgName} +'%'
+			</if>	
+			<if test="hUseYN != null and hUseYN !='' ">
+			AND hUseYN = #{hUseYN}
+			</if>
+			<if test="orgFlag != null and orgFlag !='' ">
+			AND orgFlag = #{orgFlag}
+			</if>
+			<if test="orgFlag == null or orgFlag =='' ">
+			AND orgFlag = 'HQ'
+			</if>
+			
+		ORDER BY CONVERT(INT,hOrderCount) ASC
+	</select>
+	
+	<select id="searchLowOrgInfo" parameterType="trm60" resultType="trm60">
+		SELECT
+			highOrgCode,
+			lowOrgCode,
+			lowOrgName,
+			lUseYN,
+			lOrderCount
+		FROM
+			TRM60DT
+		WHERE
+			1=1
+			<if test="highOrgCode != null and highOrgCode != '' ">
+			and highOrgCode = #{highOrgCode}
+			</if>	
+			<if test="orgFlag != null and orgFlag != '' ">
+			and orgFlag = #{orgFlag}
+			</if>
+		ORDER BY 
+			lUseYN desc, CONVERT(INT,lOrderCount) ASC
+	</select>
+	
+	<insert id="insertLowOrg" parameterType="trm60">
+		INSERT INTO TRM60DT 
+			(highOrgCode,orgFlag,lowOrgCode,lowOrgName,lUseYN,lOrderCount,inputDate)
+		VALUES 
+			(#{highOrgCode},#{orgFlag},#{lowOrgCode},#{lowOrgName},#{lUseYN},#{lOrderCount},GETDATE())
+	</insert>
+	
+	<update id="updateLowOrg" parameterType="trm60">
+		UPDATE 
+			TRM60DT
+		SET 
+			lowOrgName = #{lowOrgName},
+			lUseYN = #{lUseYN},
+			lOrderCount = #{lOrderCount},
+			updateDate = getdate()
+		WHERE 
+			highOrgCode = #{highOrgCode}
+			and lowOrgCode = #{lowOrgCode}
+			and orgFlag = #{orgFlag}
+	</update>
+	
+	<select id="searchOrgMemberList" parameterType="trm60" resultType="java.util.LinkedHashMap">
+		SELECT
+			T1.highOrgCode,
+			T1.highOrgName,
+			T2.lowOrgCode,
+			T2.lowOrgName,
+			T3.empCode,
+			replace(T3.empName,'o','')as empName,
+			T3.rankNum,
+			T3.rankName
+		FROM TRM60 T1
+			left outer join TRM60DT T2
+			ON T1.highOrgCode = T2.highOrgCode
+			AND T1.orgFlag = T2.orgFlag
+			inner join TRM10 T3
+			ON T2.lowOrgCode = T3.depCode2
+		WHERE
+			1=1 
+			<if test="highOrgCode != null and highOrgCode != '' ">
+			AND T2.highOrgCode = #{highOrgCode}
+			</if>
+			<if test="orgFlag != null and orgFlag != '' ">
+			AND T2.orgFlag = #{orgFlag}
+			</if>
+			
+		ORDER BY T1.hOrderCount,T2.lOrderCount,T3.rankNum ASC
+	</select>
+	
+	<select id="searchOrgMemberList2" parameterType="trm60" resultType="java.util.LinkedHashMap">
+		SELECT
+			T1.highOrgCode,
+			T1.highOrgName,
+			T2.lowOrgCode,
+			T2.lowOrgName,
+			T3.empCode,
+			replace(T3.empName,'o','')as empName,
+			T3.rankNum,
+			T3.rankName
+		FROM TRM60 T1
+			left outer join TRM60DT T2
+			ON T1.highOrgCode = T2.highOrgCode
+			AND T1.orgFlag = T2.orgFlag
+			inner join TRM10 T3
+			ON T2.lowOrgCode = T3.depCode2
+		WHERE
+			1=1 
+			<if test="highOrgCode != null and highOrgCode != '' ">
+			AND T2.highOrgCode = #{highOrgCode}
+			</if>
+			<if test="lowOrgCode != null and lowOrgCode != '' ">
+			AND T2.lowOrgCode = #{lowOrgCode}
+			</if>
+			<if test="orgFlag != null and orgFlag != '' ">
+			AND T2.orgFlag = #{orgFlag}
+			</if>
+			
+		ORDER BY T1.hOrderCount,T2.lOrderCount,T3.rankNum ASC
+	</select>
+	
+	
+	<select id="mainEmpCount" resultType="java.util.LinkedHashMap">
+		SELECT 
+			count(*) AS empCount
+		FROM 
+			TRM10
+	</select>
+	
+	<select id="mainHwTotCount" resultType="java.util.LinkedHashMap">
+		SELECT 
+			T1.ItemType AS ItemType,
+			count (*) AS gCount
+		FROM(
+			SELECT 
+				ItemType
+			FROM 
+				THW10
+			WHERE 
+				ItemStatus in('01')
+		)T1 
+		GROUP BY T1.ItemType 
+		ORDER BY T1.ItemType
+	</select>
+	
+	<select id="mainHwSpareCount" resultType="java.util.LinkedHashMap">
+		SELECT
+			T1.ItemType AS ItemType, 
+			count(*) AS gCount
+		FROM(
+			SELECT 
+				ItemType
+			FROM 
+				THW10
+			WHERE 
+				LCode1 in ('90000001','90000002')
+				AND ItemStatus ='01'
+		)T1
+		GROUP BY T1.ItemType
+		ORDER BY T1.ItemType
+
+	</select>
+	
+	<select id="mainRecentHwMoving" resultType="java.util.LinkedHashMap">
+		SELECT
+			top 5
+			T1.mSeq,
+			T1.rSeq,
+			T1.IdentiCode,
+			SUBSTRING(T1.arrDate,6,2) as arrMonth,
+			SUBSTRING(T1.arrDate,9,2) as arrDay,
+			(SELECT lowCodeName FROM TRM20DT WHERE highCode='hwItem' and lowCode =T2.ItemType) as ItemType,
+			T1.startLCode1Name,
+			T1.startLCode2Name,
+			T1.arrLCode1Name,
+			T1.arrLCode2Name,
+			T1.note
+		FROM 
+			THW20 T1
+			inner join THW10 T2
+			on T1.rSeq = T2.rSeq
+			and T1.IdentiCode = T2.IdentiCode
+		ORDER BY 
+			T1.mSeq DESC
+				
+	</select>
+	
+	<select id="mainHwYearSearch" resultType="java.util.LinkedHashMap" parameterType="String">
+		SELECT
+			T3.years ,
+			T3.tc,
+			sum(T3.tc) over() as totCount,
+			ROW_NUMBER() over(order by T3.tc desc) as ronum
+		FROM(
+			SELECT
+				T2.years,
+				count(T2.years) as tc
+			FROM (
+				SELECT
+					SUBSTRING(T1.productDate,0,5) as years
+				FROM
+					THW10 T1
+				WHERE
+					T1.ItemType =#{ItemType}
+					AND T1.ItemStatus ='01'
+			)T2
+			GROUP BY T2.years
+		)T3
+		
+	</select>
+	
+	<select id="loginAccount" parameterType ="String" resultType="trm10">
+		SELECT 
+			empCode,
+			empName,
+			depCode1,
+			depName1
+		FROM 
+			TRM10
+		WHERE 
+			empCode= #{empCode}
+	</select>
+	
+	<select id="getEmpInfo" parameterType="String" resultType="java.util.LinkedHashMap">
+		SELECT
+			T2.orgFlag,
+			T1.highOrgCode,
+			T1.highOrgName,
+			T2.lowOrgCode,
+			T2.lowOrgName,
+			replace(T3.empName,'o','')as empName,
+			T3.rankNum,
+			T3.rankName
+		FROM TRM60 T1
+			left outer join TRM60DT T2
+			ON T1.highOrgCode = T2.highOrgCode
+			AND T1.orgFlag = T2.orgFlag
+			inner join TRM10 T3
+			ON T2.lowOrgCode = T3.depCode2
+		WHERE
+			1=1 
+			and T3.empCode = #{empCode}
+	</select>
+	
+	<select id="getHwInfoOfEmp" parameterType="String" resultType="java.util.LinkedHashMap">
+		SELECT 
+			rSeq,
+			(SELECT lowCodeName FROM TRM20DT WHERE highCode='hwItem' and lowCode =ItemType) as ItemType,
+			(SELECT lowCodeName FROM TRM20DT WHERE highCode='hwManufac' and lowCode = Manufac) as Manufac,
+			ModelName,
+			productDate,
+			IdentiCode,
+			LCode1,
+			LCode1Name,
+			ISNULL(Note,'') AS Note,
+			LCodeType,
+			ItemType AS ItemTypeCode,
+			Manufac AS ManufacCode
+		FROM 
+			THW10
+		WHERE 
+			LCode2 = #{empCode}
+	</select>
+	
+	<select id= "searchRetiredEmpList" resultType="java.util.LinkedHashMap">
+		
+		SELECT  
+			TT1.LCode1, 
+			TT1.LCode1Name,
+			TT1.LCode2,
+			TT1.LCode2Name
+		FROM  
+			(
+				SELECT 
+					distinct(T1.LCode2),T1.LCode1, T1.LCode1Name,T1.LCode2Name
+				FROM  
+					THW10 T1
+				UNION 
+				SELECT 
+					distinct(T2.Lcode2) ,T2.LCode1, T2.LCode1Name,T2.LCode2Name
+				FROM 
+					TSW20 T2
+				WHERE 
+					T2.useYN ='Y'
+			)TT1
+		WHERE 
+			TT1.LCode2 not in (
+				SELECT 
+					empCode
+				FROM  
+					TRM10
+			)
+			AND len(TT1.LCode2) = 4
+		ORDER BY 
+			TT1.LCode2 ASC
+	</select>
+	
+	<select id="searchRetiredEmpHwList" parameterType="trm10" resultType="java.util.LinkedHashMap" >
+		SELECT 
+			rSeq,
+			(SELECT lowCodeName FROM TRM20DT WHERE highCode='hwItem' and lowCode =ItemType) as ItemType,
+			ItemType as ItemTypeCode,
+			(SELECT lowCodeName FROM TRM20DT WHERE highCode='hwManufac' and lowCode = Manufac) as Manufac,
+			ModelName,
+			(SELECT lowCodeName FROM TRM20DT WHERE highCode='lCode' and lowCode = LCodeType) as LCodeType,
+			LCodeType as LCodeTypeCode,
+			LCode1,
+			LCode1Name,
+			LCode2,
+			LCode2Name,
+			isnull(productDate,'') as productDate,
+			IdentiCode
+		FROM
+			THW10
+		WHERE 
+			LCode2	IN
+			<foreach collection="empCodeList" item="item" index="index" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		ORDER BY 
+			LCode2 ASC
+	</select>
+	
+	<select id="searchRetiredEmpSwList" parameterType="trm10" resultType="java.util.LinkedHashMap" >
+		SELECT 
+			T2.swType,
+			T2.swLicense,
+			SUM(T2.qty) AS qty
+		FROM
+			TSW20 T1
+			INNER JOIN TSW20DT T2
+			ON T1.swRegSeq = T2.swRegSeq
+			AND T1.swRegDTSeq = T2.swRegDTSeq
+		WHERE
+			T1.useYN='Y'
+			AND LCode2 IN 
+			<foreach collection="empCodeList" item="item" index="index" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		GROUP BY 
+			T2.swType,T2.swLicense
+	</select>
+	
+	<select id="SwUseNUpdate" parameterType="trm10" >
+		UPDATE
+			TSW20
+		SET
+			useYN = 'N'
+			
+		WHERE 
+			LCode2 IN 
+			<foreach collection="empCodeList" item="item" index="index" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+	</select>
+	
+	<select id ="setEmptyCodeSB" resultType="java.util.LinkedHashMap">
+		SELECT
+			highCode,
+			lowCode,
+			lowCodeName,
+			useYN,
+			orderCount
+		FROM
+			TRM20DT
+		WHERE 1=1
+			and highCode ='lCode'
+			and useYN ='Y'		
+			and lowCode like '%empty'
+		order by CONVERT(int,orderCount) asc
+	</select>
+	
+	<select id ="setDivisionSB" resultType="java.util.LinkedHashMap" parameterType="trm60">
+		SELECT
+			highOrgCode,
+			highOrgName,
+			hOrderCount,
+			orgFlag
+		FROM 
+			TRM60
+		WHERE 
+			hUseYN ='Y'
+			AND orgFlag =#{orgFlag}
+		ORDER BY highOrgName ASC
+	</select>
+	
+	<select id = "searchEmptyList" resultType="java.util.LinkedHashMap" parameterType="thw10">
+		SELECT 
+			T1.rSeq,
+			T3.highOrgCode,
+			T3.highOrgName,
+			T1.ItemType as ItemTypeCode,
+			(SELECT lowCodeName FROM TRM20DT WHERE highCode='hwItem' and lowCode =T1.ItemType) as ItemType,
+			T1.ModelName,
+			T1.productDate,
+			T1.IdentiCode,
+			T1.preUsr
+		FROM 
+			THW10 T1
+			inner join TRM60DT T2
+			on T1.LCode1 = T2.lowOrgCode
+			inner join TRM60 T3
+			on T2.highOrgCode = T3.highOrgCode
+			and T2.orgFlag = T3.orgFlag
+		WHERE 
+			T1.LCodeType =#{LCodeType}
+			<if test="LCode1 != null and LCode1 != '' ">
+			AND T1.LCode1 = #{LCode1}
+			</if>
+				
+	</select>
+	
+</mapper>

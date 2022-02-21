@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE configuration
+PUBLIC "-//mybatis.org//DTD Config 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-config.dtd">
+<configuration>
+	<typeAliases>
+		<typeAlias type="com.enex.rm.modal.model.TRM10" alias="trm10"/>
+		<typeAlias type="com.enex.rm.com.model.TRM20" alias="trm20"/>
+		<typeAlias type="com.enex.rm.com.model.UpFileVO" alias="trm30"/>
+		<typeAlias type="com.enex.rm.com.model.TRM60" alias="trm60"/>
+		<typeAlias type="com.enex.rm.com.model.TRM70" alias="trm70"/>
+		<typeAlias type="com.enex.rm.hwm.model.TRM40" alias="trm40"/>
+		<typeAlias type="com.enex.rm.modal.model.TRM50" alias="trm50"/>
+		<typeAlias type="com.enex.rm.hwm.model.THW10" alias="thw10"/>
+		<typeAlias type="com.enex.rm.hwm.model.THW20" alias="thw20"/>
+		<typeAlias type="com.enex.rm.hwm.model.THW30" alias="thw30"/>
+		<typeAlias type="com.enex.rm.com.model.PagingVO" alias="pagingvo"/>
+		
+		<typeAlias type="com.enex.rm.swm.model.TSW10" alias="tsw10"/>
+		<typeAlias type="com.enex.rm.swm.model.TSW20" alias="tsw20"/>
+		<typeAlias type="com.enex.rm.swm.model.TSW20DT" alias="tsw20dt"/>
+	</typeAliases>
+	
+	<mappers>
+		<mapper resource="query/modal.xml"/>
+		<mapper resource="query/hwm.xml"/>
+		<mapper resource="query/file.xml"/>
+		<mapper resource="query/com.xml"/>
+		<mapper resource="query/swm.xml"/>
+	</mappers>
+</configuration>
